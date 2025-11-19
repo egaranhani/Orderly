@@ -1,0 +1,50 @@
+---
+description: Padrões de estilização CSS
+globs:
+  - "**/*.css"
+alwaysApply: false
+---
+
+# Estilização
+
+## CSS Global vs CSS por Componente
+
+**CSS Global:**
+- Use para estilos globais (ex: `index.css`)
+- Use para estilos específicos de página (ex: `LoginPage.css`)
+
+## Estrutura de CSS
+
+```css
+.component-container {
+  display: flex;
+  flex-direction: column;
+}
+
+.component-header {
+  padding: 1rem;
+}
+```
+
+## Regras
+
+- Um arquivo CSS por componente/página
+- Nomes de classes em kebab-case
+- Evite estilos inline quando possível
+- Use variáveis CSS para cores/temas
+- Classes descritivas e semânticas
+
+## Responsividade
+
+```css
+@media (max-width: 768px) {
+  .container {
+    flex-direction: column;
+  }
+}
+```
+
+**Regras:**
+- Teste em diferentes tamanhos de tela
+- Use media queries quando necessário
+- Considere mobile-first approach

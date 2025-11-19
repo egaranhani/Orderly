@@ -1,0 +1,57 @@
+---
+description: Padrões para roteamento com React Router
+globs:
+  - "**/App.tsx"
+alwaysApply: false
+---
+
+# Roteamento
+
+## Estrutura de Rotas
+
+```typescript
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+
+function App() {
+  return (
+    <BrowserRouter>
+      <Routes>
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/chat" element={<ChatPage />} />
+        <Route path="/" element={<Navigate to="/chat" replace />} />
+      </Routes>
+    </BrowserRouter>
+  );
+}
+```
+
+## Rotas Protegidas
+
+```typescript
+<Route
+  path="/protected"
+  element={
+    <ProtectedRoute>
+      <ProtectedPage />
+    </ProtectedRoute>
+  }
+/>
+```
+
+## Navegação Programática
+
+```typescript
+import { useNavigate } from 'react-router-dom';
+
+const navigate = useNavigate();
+navigate('/chat');
+navigate('/chat', { replace: true });
+```
+
+## Regras
+
+- Use `BrowserRouter` na raiz
+- Rotas públicas e protegidas separadas
+- Use `Navigate` para redirecionamentos
+- Use `useNavigate` para navegação programática
+- Evite `window.location` diretamente

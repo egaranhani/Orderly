@@ -1,0 +1,43 @@
+---
+description: Padrões para criação de Controllers na camada Presentation
+globs:
+  - "**/controllers/**/*.ts"
+  - "**/*.controller.ts"
+alwaysApply: false
+---
+
+# Padrões de Controllers
+
+## Template de Controller
+
+```typescript
+@Controller('users')
+@UseGuards(AuthGuard('jwt'))
+export class UserController {
+  constructor(
+    private readonly createUserUseCase: CreateUserUseCase,
+  ) {}
+
+  @Post()
+  async create(@Body() dto: CreateUserDto): Promise<UserResponseDto> {
+    return this.createUserUseCase.execute(dto);
+  }
+}
+```
+
+## Regras
+
+- Controllers são finos, apenas orquestram
+- Validação via `class-validator` nos DTOs
+- Sempre retornam DTOs, nunca entidades
+- Use guards para autenticação/autorização
+- Injetam Use Cases, não repositórios diretamente
+- Métodos sempre assíncronos
+
+## Checklist
+
+- ✅ Usa decorators do NestJS (`@Controller`, `@Post`, `@Get`, etc)
+- ✅ Injeta Use Cases no construtor
+- ✅ Retorna DTOs, nunca entidades
+- ✅ Usa guards para rotas protegidas
+- ✅ Validação feita via DTOs com `class-validator`

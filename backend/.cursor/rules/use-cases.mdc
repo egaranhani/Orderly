@@ -1,0 +1,42 @@
+---
+description: Padrões para criação de Use Cases na camada Application
+globs:
+  - "**/use-cases/**/*.ts"
+alwaysApply: false
+---
+
+# Padrões de Use Cases
+
+## Template de Use Case
+
+```typescript
+@Injectable()
+export class CreateUserUseCase {
+  constructor(
+    @Inject('IUserRepository')
+    private readonly userRepository: IUserRepository,
+  ) {}
+
+  async execute(dto: CreateUserDto): Promise<UserResponseDto> {
+    // Lógica do caso de uso
+    // Retorna DTO, não entidade
+  }
+}
+```
+
+## Regras
+
+- Um Use Case = uma responsabilidade
+- Recebe DTOs, retorna DTOs
+- NUNCA retorna entidades diretamente
+- Injeção via `@Inject('InterfaceName')` usando tokens de string
+- Método principal sempre se chama `execute`
+- Sempre assíncrono, retorna `Promise`
+
+## Checklist
+
+- ✅ Recebe DTO como parâmetro
+- ✅ Retorna DTO como resposta
+- ✅ Injeta dependências via `@Inject` com token de string
+- ✅ Trata erros com exceções do NestJS
+- ✅ Mapeia entidades para DTOs antes de retornar

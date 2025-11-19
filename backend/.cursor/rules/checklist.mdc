@@ -1,0 +1,31 @@
+---
+description: Checklist para criação de novas funcionalidades
+alwaysApply: false
+---
+
+# Checklist ao Criar Nova Funcionalidade
+
+1. ✅ Criar entidade no Domain (se necessário)
+2. ✅ Criar interface de repositório no Domain (se necessário)
+3. ✅ Criar DTOs na Application
+4. ✅ Criar Use Case na Application
+5. ✅ Implementar repositório na Infrastructure (se necessário)
+6. ✅ Criar Controller na Presentation
+7. ✅ Criar Módulo NestJS
+8. ✅ Registrar no AppModule
+9. ✅ Adicionar validações nos DTOs
+10. ✅ Testar fluxo completo
+
+## Ordem de Implementação
+
+1. **Domain**: Entidades e interfaces primeiro
+2. **Application**: DTOs e Use Cases
+3. **Infrastructure**: Implementações de repositórios
+4. **Presentation**: Controllers e módulos
+
+## Validações
+
+- ✅ DTOs de request com `class-validator`
+- ✅ Tratamento de erros com exceções HTTP
+- ✅ Validação de autenticação em rotas protegidas
+- ✅ Mapeamento correto de entidades para DTOs

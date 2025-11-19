@@ -1,0 +1,61 @@
+---
+description: Arquitetura Clean Architecture e Hexagonal do backend
+alwaysApply: true
+---
+
+# Arquitetura Backend
+
+Este projeto segue **Clean Architecture** e **Arquitetura Hexagonal** (Ports & Adapters).
+
+## Estrutura de Camadas
+
+```
+src/
+├── domain/              # Camada de Domínio (Núcleo)
+│   ├── entities/        # Entidades de negócio
+│   ├── repositories/    # Interfaces de repositórios (Ports)
+│   └── services/        # Interfaces de serviços (Ports)
+├── application/         # Camada de Aplicação
+│   ├── use-cases/       # Casos de uso
+│   └── dtos/            # Data Transfer Objects
+├── infrastructure/      # Camada de Infraestrutura (Adapters)
+│   ├── persistence/     # Implementações de repositórios
+│   └── ai/              # Serviços externos (Vertex AI, etc)
+└── presentation/        # Camada de Apresentação
+    ├── controllers/     # Controllers REST
+    ├── auth/            # Autenticação e autorização
+    └── *.module.ts      # Módulos NestJS
+```
+
+## Regras de Dependência (CRÍTICO)
+
+1. **Domain**: NÃO pode depender de nenhuma outra camada
+   - Apenas entidades, interfaces e tipos TypeScript
+   - Sem imports de NestJS, Firestore, ou qualquer biblioteca externa
+   - Zero dependências externas
+
+2. **Application**: Pode depender APENAS de Domain
+   - Use cases dependem apenas de interfaces do Domain
+   - DTOs são objetos simples (sem decorators do NestJS)
+
+3. **Infrastructure**: Implementa interfaces do Domain
+   - Implementa repositórios definidos em `domain/repositories/`
+   - Implementa serviços definidos em `domain/services/`
+   - Pode usar bibliotecas externas (Firestore, Vertex AI, etc)
+
+4. **Presentation**: Orquestra tudo
+   - Controllers dependem de Use Cases
+   - Módulos NestJS conectam tudo via Dependency Injection
+   - Única camada que pode usar decorators do NestJS em controllers
+
+## Proibições
+
+❌ **NUNCA:**
+- Importar Infrastructure no Domain
+- Importar Presentation no Application ou Domain
+- Usar decorators do NestJS em entidades
+- Retornar entidades diretamente de controllers
+- Criar dependências circulares
+- Usar `any` sem justificativa
+- Ignorar tratamento de erros
+- Hardcodar valores (use variáveis de ambiente)

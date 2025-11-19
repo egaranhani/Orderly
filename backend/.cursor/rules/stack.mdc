@@ -1,0 +1,37 @@
+---
+description: Diretrizes específicas para Firestore, Vertex AI e Google OAuth
+alwaysApply: false
+---
+
+# Stack Específica
+
+## Firestore
+- Repositórios na Infrastructure
+- Use transações quando necessário
+- Trate erros de conexão
+- Sempre retorne `null` quando documento não existe
+
+## Vertex AI
+- Serviço na Infrastructure
+- Implementa `IAiService` do Domain
+- Trate rate limits e erros da API
+- Use modelo `gemini-2.0-flash-exp`
+
+## Google OAuth
+- Strategy na Presentation
+- Valide domínio do workspace
+- Armazene tokens com segurança
+- Use `passport-google-oauth20`
+
+## Exemplos de Violações
+
+```typescript
+// ❌ ERRADO: Domain importando Infrastructure
+import { Firestore } from '@google-cloud/firestore';
+
+// ❌ ERRADO: Controller retornando entidade
+return this.userRepository.findById(id);
+
+// ❌ ERRADO: Use Case sem injeção de dependência
+const repo = new FirestoreUserRepository();
+```

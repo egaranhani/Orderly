@@ -1,0 +1,58 @@
+---
+description: Padrões para criação de DTOs e validação
+globs:
+  - "**/dtos/**/*.ts"
+alwaysApply: false
+---
+
+# Padrões de DTOs
+
+## DTOs de Request
+
+```typescript
+export class CreateUserDto {
+  @IsEmail()
+  @IsNotEmpty()
+  email: string;
+
+  @IsString()
+  @MinLength(3)
+  name: string;
+}
+```
+
+## DTOs de Response
+
+```typescript
+export class UserResponseDto {
+  id: string;
+  email: string;
+  name: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+```
+
+## Regras
+
+- Use `class-validator` para validação em DTOs de request
+- DTOs de response NÃO têm decorators
+- Mapeie entidades para DTOs nos Use Cases
+- DTOs sempre no diretório `application/dtos/`
+- Nomenclatura: `CreateXDto`, `UpdateXDto`, `XResponseDto`
+
+## Tratamento de Erros
+
+```typescript
+throw new NotFoundException(`User with ID ${id} not found`);
+throw new BadRequestException('Invalid data');
+throw new UnauthorizedException('Unauthorized');
+```
+
+## Checklist
+
+- ✅ DTOs de request com decorators de validação
+- ✅ DTOs de response sem decorators
+- ✅ Mapeamento de entidade para DTO no Use Case
+- ✅ Uso de exceções HTTP do NestJS
+- ✅ Mensagens de erro claras

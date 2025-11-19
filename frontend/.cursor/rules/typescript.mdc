@@ -1,0 +1,64 @@
+---
+description: Convenções TypeScript para o frontend
+globs:
+  - "**/types/**/*.ts"
+alwaysApply: false
+---
+
+# TypeScript e Tipos
+
+## Interfaces
+
+```typescript
+export interface User {
+  id: string;
+  email: string;
+  name: string;
+  createdAt: string;
+  updatedAt: string;
+}
+```
+
+**Regras:**
+- Prefira `interface` sobre `type` para objetos
+- Use `type` para unions, intersections, etc.
+- Exporte interfaces que serão usadas externamente
+- Agrupe tipos relacionados em um arquivo
+
+## Tipos de Props
+
+```typescript
+interface ComponentProps {
+  title: string;
+  optional?: string;
+  onClick: () => void;
+  children?: React.ReactNode;
+}
+```
+
+**Regras:**
+- Sempre tipar props
+- Use `?` para props opcionais
+- Use `React.ReactNode` para children
+- Evite `any` em props
+
+## Tipos de Eventos
+
+```typescript
+// Form submit
+const handleSubmit = (e: React.FormEvent) => {};
+
+// Input change
+const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {};
+
+// Button click
+const handleClick = (e: React.MouseEvent<HTMLButtonElement>) => {};
+```
+
+## Convenções de Nomenclatura
+
+- Componentes: PascalCase (ex: `LoginPage`, `ChatPage`)
+- Interfaces: PascalCase (ex: `User`, `Conversation`)
+- Funções: camelCase (ex: `handleLogin`, `getUserData`)
+- Variáveis: camelCase (ex: `userName`, `isLoading`)
+- Constantes: UPPER_SNAKE_CASE (ex: `API_URL`)

@@ -1,0 +1,59 @@
+---
+description: Arquitetura e estrutura do frontend React
+alwaysApply: true
+---
+
+# Arquitetura Frontend
+
+Este projeto usa **React** com **TypeScript**, **React Query** e **React Router**.
+
+## Estrutura de Pastas
+
+```
+src/
+├── components/      # Componentes reutilizáveis
+├── pages/          # Páginas da aplicação
+├── contexts/       # Contextos React (estado global)
+├── services/        # Serviços de API
+├── types/          # Definições TypeScript
+├── App.tsx         # Componente raiz com rotas
+└── main.tsx        # Entry point
+```
+
+## Princípios Fundamentais
+
+1. **Separação de Responsabilidades**
+   - Components: UI reutilizável
+   - Pages: Páginas completas com lógica
+   - Services: Comunicação com API
+   - Contexts: Estado global compartilhado
+   - Types: Definições de tipos TypeScript
+
+2. **Componentes Funcionais**
+   - Use sempre componentes funcionais com hooks
+   - Evite componentes de classe
+   - Prefira `React.FC` ou tipagem explícita
+
+3. **Estado e Dados**
+   - Estado local: `useState`
+   - Estado global: Context API
+   - Dados do servidor: React Query
+   - Não use Redux ou outras libs de estado complexas
+
+4. **TypeScript**
+   - Tipagem explícita em todos os lugares
+   - Evite `any`
+   - Use interfaces para tipos de objetos
+   - Prefira `interface` sobre `type` para objetos
+
+## Proibições
+
+❌ **NUNCA:**
+- Usar componentes de classe
+- Usar `any` sem justificativa
+- Misturar lógica de negócio em componentes
+- Fazer chamadas diretas de API em componentes
+- Usar `var` (sempre `const` ou `let`)
+- Mutar props diretamente
+- Criar dependências circulares
+- Hardcodar URLs da API (use variáveis de ambiente)

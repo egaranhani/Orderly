@@ -1,0 +1,59 @@
+---
+description: Padrões para criação de módulos NestJS e injeção de dependências
+globs:
+  - "**/*.module.ts"
+alwaysApply: false
+---
+
+# Módulos NestJS
+
+## Estrutura de Módulos
+
+```typescript
+@Module({
+  imports: [
+    FirestoreModule,
+  ],
+  controllers: [UserController],
+  providers: [
+    CreateUserUseCase,
+    GetUserUseCase,
+  ],
+  exports: [],
+})
+export class UserModule {}
+```
+
+## Injeção de Dependências
+
+**SEMPRE use tokens de string para interfaces:**
+
+```typescript
+// Infrastructure Module
+{
+  provide: 'IUserRepository',
+  useClass: FirestoreUserRepository,
+}
+
+// Use Case
+constructor(
+  @Inject('IUserRepository')
+  private readonly userRepository: IUserRepository,
+) {}
+```
+
+## Regras
+
+- Módulos na camada Presentation
+- Providers de Infrastructure devem estar em módulos separados
+- Use `@Global()` apenas quando necessário (ex: FirestoreModule)
+- Sempre use tokens de string para interfaces
+- Exporte apenas o que outros módulos precisam
+
+## Checklist
+
+- ✅ Módulo na camada Presentation
+- ✅ Providers de Infrastructure em módulos separados
+- ✅ Tokens de string para interfaces
+- ✅ Exports apenas quando necessário
+- ✅ Imports de módulos necessários

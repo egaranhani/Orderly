@@ -1,0 +1,44 @@
+---
+description: Padrões para uso do React Query
+globs:
+  - "**/*.tsx"
+alwaysApply: false
+---
+
+# React Query
+
+## Query
+
+```typescript
+const { data, isLoading, error } = useQuery({
+  queryKey: ['conversations'],
+  queryFn: () => aiService.getConversations(),
+});
+```
+
+## Mutation
+
+```typescript
+const mutation = useMutation({
+  mutationFn: (dto: CreateDto) => service.create(dto),
+  onSuccess: () => {
+    queryClient.invalidateQueries({ queryKey: ['conversations'] });
+  },
+});
+```
+
+## Regras
+
+- Use query keys consistentes
+- Invalide queries após mutations
+- Trate loading e error states
+- Sempre tipar dados retornados
+- Use `useQueryClient` para invalidação
+
+## Tratamento de Estados
+
+```typescript
+if (isLoading) return <Loading />;
+if (error) return <Error message={error.message} />;
+return <DataDisplay data={data} />;
+```

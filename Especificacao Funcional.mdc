@@ -1,0 +1,347 @@
+# 📘 ESPECIFICAÇÃO FUNCIONAL — Sistema de Gestão de Prioridades (v1.1)
+
+## 1. Objetivo do Sistema
+
+Criar um sistema simples e eficiente para **gestão de prioridades** e **tarefas**, baseado na **Matriz de Eisenhower**.  
+O sistema deve permitir cadastro, organização e revisão de prioridades e tarefas via interface visual e via **chat com IA**.
+
+O sistema deve incluir uma **Inbox** onde o usuário carrega **resumos de reuniões** (manualmente) para serem processados por um Agente de IA, transformando esses resumos em prioridades e tarefas sugeridas.
+
+---
+
+## 2. Persona e Contexto de Uso
+
+### 2.1 Persona Principal
+
+Usuário gestor/profissional com rotina intensa de reuniões e contextos variados, que necessita:
+
+- Centralizar prioridades.
+- Transformar rapidamente resumos de reuniões em ações.
+- Repriorizar de forma simples.
+- Interagir com IA para organizar o dia.
+
+### 2.2 Contextos Típicos
+
+- Planejamento diário.
+- Revisão pós-reunião.
+- Revisão semanal.
+- Uso do chat para criar/revisar prioridades e tarefas.
+
+---
+
+## 3. Visão Geral do Sistema
+
+Módulos principais:
+
+1. **Gestão de Prioridades**
+   - Organizadas pela **Matriz de Eisenhower**.
+   - Com tags.
+
+2. **Gestão de Tarefas**
+   - Sempre vinculadas a uma Prioridade.
+   - Classificação Eisenhower:
+     - Fazer
+     - Agendar
+     - Delegar
+     - Eliminar
+
+3. **Repriorização Simples**
+   - Via interface (ex.: drag-and-drop).
+   - Via chat com IA.
+
+4. **Agente de IA**
+   - Auxilia na organização, revisão, criação e classificação de prioridades e tarefas.
+
+5. **Inbox de Ações**
+   - Usuário carrega **resumos de reuniões manualmente**.
+   - IA sugere prioridades e tarefas.
+   - Usuário revisa antes de criar.
+
+> **Não há integrações automáticas** com Tactiq ou outra plataforma.  
+> A ingestão é **manual**, via upload ou colagem do resumo no sistema.
+
+---
+
+## 4. Entidades Funcionais
+
+### 4.1 Prioridade
+
+#### 4.1.1 Campos
+
+- **ID** (interno).
+- **Título**.
+- **Descrição** (opcional).
+- **Quadrante Eisenhower**:
+  - Q1: Urgente / Importante
+  - Q2: Não urgente / Importante
+  - Q3: Urgente / Não importante
+  - Q4: Não urgente / Não importante
+- **Tags** (lista de strings).
+- **Status**:
+  - Ativa
+  - Concluída
+  - Arquivada
+- **Origem**:
+  - Manual
+  - IA (sugerida via inbox)
+- **Ordem de exibição** dentro do quadrante (para ordenação manual).
+
+#### 4.1.2 Funcionalidades
+
+- Criar prioridade.
+- Editar prioridade.
+- Arquivar prioridade.
+- Mover prioridade entre quadrantes.
+- Ordenar prioridades dentro de um quadrante (ex.: drag-and-drop).
+- Filtrar prioridades por:
+  - Tags
+  - Status
+  - Origem
+- Visualizar tarefas vinculadas a uma prioridade.
+
+---
+
+### 4.2 Tarefa
+
+#### 4.2.1 Campos
+
+- **ID** (interno).
+- **Prioridade associada** (obrigatório).
+- **Título**.
+- **Descrição** (opcional).
+- **Classificação Eisenhower**:
+  - Fazer
+  - Agendar
+  - Delegar
+  - Eliminar
+- **Data ideal** (para tarefas do tipo *Agendar* – opcional).
+- **Responsável** (para tarefas do tipo *Delegar* – texto livre).
+- **Status**:
+  - Aberta
+  - Em andamento
+  - Concluída
+  - Cancelada
+- **Origem**:
+  - Manual
+  - IA (ex.: criada a partir da Inbox)
+- **Referência da reunião** (identificação textual da reunião, quando gerada via Inbox).
+
+#### 4.2.2 Funcionalidades
+
+- Criar tarefa vinculada a uma prioridade.
+- Editar título, descrição, classificação, data e responsável.
+- Reclassificar tarefa (ex.: de Fazer para Delegar).
+- Concluir tarefa.
+- Cancelar tarefa.
+- Mover tarefas entre classificações (ex.: via drag-and-drop entre colunas).
+
+---
+
+## 5. Interface de Organização
+
+### 5.1 Matriz de Eisenhower (Prioridades)
+
+Tela principal com uma **grade 2x2** mostrando prioridades como cards:
+
+- Linhas: Urgente / Não urgente.
+- Colunas: Importante / Não importante.
+
+Cada card de prioridade deve exibir:
+
+- Título.
+- 1–2 tags principais.
+- Contador de tarefas abertas associadas.
+- Origem (ex.: ícone ou label “Manual” / “IA”).
+
+Ações rápidas no card:
+
+- Editar prioridade.
+- Mover de quadrante.
+- Abrir lista de tarefas da prioridade.
+
+### 5.2 Tarefas por Prioridade
+
+Ao selecionar uma prioridade, o sistema exibe suas tarefas agrupadas por **Classificação Eisenhower**:
+
+- Fazer.
+- Agendar.
+- Delegar.
+- Eliminar (pode ser inicialmente recolhida/colapsada).
+
+Funcionalidades da tela:
+
+- Criar nova tarefa.
+- Mover tarefa entre classificações.
+- Editar tarefa.
+- Concluir/Cancelar tarefa.
+
+> Não há visões globais por faixa de tempo (como “Hoje” ou “Semana”).  
+> As tarefas são sempre visualizadas no contexto de uma prioridade.
+
+---
+
+## 6. Chat com IA — Agente Organizador
+
+### 6.1 Objetivo
+
+O Agente de IA deve:
+
+- Ajudar na criação de prioridades e tarefas via linguagem natural.
+- Auxiliar na revisão e organização das prioridades e tarefas existentes.
+- Ajudar a processar itens da Inbox (resumos de reuniões).
+- Suportar repriorização e reclassificação com comandos em texto.
+
+### 6.2 Exemplos de Comandos
+
+#### 6.2.1 Criação de Prioridades
+
+- “Crie uma prioridade urgente e importante chamada ‘Fechar proposta da Congregação Santa Cruz’ com tag ‘trabalho’.”
+- “Crie uma prioridade não urgente e importante chamada ‘Planejar férias de julho’, com tags ‘pessoal’ e ‘família’.”
+
+#### 6.2.2 Criação de Tarefas
+
+- “Na prioridade ‘Fechar proposta da Congregação Santa Cruz’, crie uma tarefa para revisar o orçamento com o financeiro (Agendar para amanhã de manhã).”
+- “Na prioridade de férias, crie uma tarefa para pesquisar hotéis e outra para ver passagens.”
+
+#### 6.2.3 Repriorização e Reclassificação
+
+- “Move ‘Planejar férias de julho’ para não urgente e não importante.”
+- “Essa tarefa deve deixar de ser Fazer e passar a ser Delegar para o João.”
+- “Liste minhas prioridades urgentes e importantes.”
+
+#### 6.2.4 Revisão
+
+- “Organize minhas prioridades de trabalho.”
+- “Mostre as tarefas de Fazer da prioridade ‘Fechar proposta da Congregação Santa Cruz’.”
+- “Quais tarefas eu tenho abertas para Delegar?”
+
+### 6.3 Comportamento do Agente
+
+- Em caso de ambiguidade (nomes similares, múltiplas prioridades correspondentes), o agente deve pedir esclarecimento.
+- Em ações destrutivas (exclusões definitivas), o agente deve pedir confirmação explícita.
+- Após executar uma ação, o agente deve:
+  - Confirmar o que foi feito.
+  - Exibir um resumo (ex.: “Criei a prioridade X no quadrante Urgente/Importante.”).
+
+---
+
+## 7. Inbox de Ações (Processamento de Reuniões)
+
+### 7.1 Fluxo Geral
+
+1. Usuário abre a tela de **Inbox**.
+2. Usuário carrega manualmente o **resumo de uma reunião**, de uma das formas:
+   - Colando o texto em um campo de texto.
+   - Fazendo upload de um arquivo de texto simples (se previsto na futura implementação).
+3. O usuário pode informar um **título ou identificação da reunião**.
+4. O sistema envia o conteúdo à IA, que analisa o resumo e retorna uma lista de **ações sugeridas**.
+5. Para cada ação sugerida, o usuário pode:
+   - Criar uma nova prioridade e tarefa.
+   - Vincular a uma prioridade existente.
+   - Ajustar textos, quadrante, classificação ou tags.
+   - Descartar a sugestão.
+6. Ao confirmar, o sistema cria/atualiza as prioridades e tarefas conforme definido.
+
+### 7.2 Conteúdo de Cada Item da Inbox
+
+Cada item de sugestão da Inbox deve incluir:
+
+- Texto ou trecho relevante do resumo (quando aplicável).
+- **Resumo da ação sugerida** (frase curta).
+- Sugestão de:
+  - Nome da prioridade.
+  - Quadrante da prioridade.
+  - Classificação da tarefa (Fazer / Agendar / Delegar / Eliminar).
+  - Tags.
+- Identificação da reunião (nome/título informado pelo usuário no upload).
+
+### 7.3 Funcionalidades da Tela de Inbox
+
+- Listar sugestões de ações para o último resumo processado.
+- Permitir:
+  - Aceitar sugestão (criando prioridade/tarefa).
+  - Vincular a uma prioridade existente (busca por título).
+  - Editar os campos antes de salvar.
+  - Descartar sugestão.
+- Histórico básico de resumos processados (lista simples com:
+  - Data de processamento.
+  - Nome da reunião.
+  - Quantidade de ações criadas/descartadas).
+
+---
+
+## 8. Usabilidade
+
+### 8.1 Repriorização Rápida
+
+- Permitir reorganizar prioridades na matriz via ações simples (ex.: drag-and-drop entre quadrantes).
+- Permitir mover tarefas entre classificações com interações diretas (drag-and-drop ou menus de ação rápida).
+
+### 8.2 Cadastro Leve
+
+- Prioridade:
+  - Campos obrigatórios: Título, Quadrante.
+- Tarefa:
+  - Campos obrigatórios: Título, Prioridade associada, Classificação.
+- Demais campos opcionais não devem bloquear a criação.
+
+### 8.3 Sincronização Interface ↔ Chat
+
+- Ações realizadas via chat devem refletir na interface visual (matriz, listas, inbox).
+- Ações realizadas via interface devem ser acessíveis via chat (ex.: “Liste as prioridades criadas hoje.”).
+
+### 8.4 Interface Simples
+
+- Layout limpo com foco em:
+  - Matriz de prioridades.
+  - Tarefas por prioridade.
+  - Inbox de ações.
+- Não há requisito funcional específico de **mobile friendly** nesta versão.
+
+---
+
+## 9. Relatórios
+
+### 9.1 Relatório Diário
+
+- Quantidade de prioridades ativas por quadrante.
+- Quantidade de tarefas abertas.
+- Quantidade de tarefas concluídas no dia.
+
+### 9.2 Relatório Semanal
+
+- Quantidade de tarefas concluídas por classificação:
+  - Fazer
+  - Agendar
+  - Delegar
+  - Eliminar
+- Quantidade de ações criadas a partir da Inbox vs. criadas manualmente.
+
+### 9.3 Log de Alterações
+
+- Registro básico de eventos:
+  - Criação de prioridade.
+  - Mudança de quadrante.
+  - Criação/edição de tarefa.
+  - Conclusão/cancelamento de tarefas.
+  - Processamento de resumos na Inbox.
+
+---
+
+## 10. Regras de Negócio
+
+1. **Toda tarefa deve pertencer a uma prioridade.**
+2. **Toda prioridade deve estar associada a um quadrante da Matriz de Eisenhower.**
+3. **Toda tarefa deve ter uma classificação Eisenhower** (Fazer, Agendar, Delegar, Eliminar).
+4. **Arquivar** prioridade ou tarefa é diferente de **excluir**:
+   - Arquivar: sai das visões principais, mas permanece no histórico.
+   - Excluir: remoção definitiva (exige confirmação).
+5. Tarefas do tipo **Delegar** exigem um campo “Responsável” (texto livre).
+6. Tarefas do tipo **Agendar** podem ter uma data ideal (opcional).
+7. Nenhuma sugestão da Inbox é criada automaticamente sem confirmação do usuário.
+8. O sistema é **single-user**.
+9. A classificação “Delegar” é apenas de **controle interno** (não dispara comunicações externas).
+10. Não há envio de **notificações** (e-mail, push etc.) nesta versão.
+11. O sistema opera apenas em **PT-BR** (interface e interações com IA).
+
+---

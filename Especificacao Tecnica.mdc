@@ -1,0 +1,996 @@
+# 🔧 ESPECIFICAÇÃO TÉCNICA — Sistema de Gestão de Prioridades (v1.0)
+
+## 1. Visão Geral Técnica
+
+### 1.1 Stack Tecnológica
+
+- **Backend**: NestJS + TypeScript
+- **Banco de Dados**: Firestore (Google Cloud)
+- **IA**: Vertex AI (Gemini 2.0) via LangGraph
+- **Formato de Comunicação com IA**: TOON (@toon-format/toon)
+- **Autenticação**: JWT (Google OAuth)
+- **Arquitetura**: Clean Architecture + Hexagonal
+
+### 1.2 Estrutura de Camadas
+
+```
+domain/          → Entidades e interfaces (Prioridade, Tarefa)
+application/     → Use Cases e DTOs
+infrastructure/  → Implementações (Firestore, Vertex AI)
+presentation/    → Controllers REST
+```
+
+---
+
+## 2. Entidades de Domínio
+
+### 2.1 Prioridade
+
+```typescript
+enum EisenhowerQuadrant {
+  Q1 = 'Q1', // Urgente / Importante
+  Q2 = 'Q2', // Não urgente / Importante
+  Q3 = 'Q3', // Urgente / Não importante
+  Q4 = 'Q4', // Não urgente / Não importante
+}
+
+enum PriorityStatus {
+  ACTIVE = 'active',
+  COMPLETED = 'completed',
+  ARCHIVED = 'archived',
+}
+
+enum PriorityOrigin {
+  MANUAL = 'manual',
+  AI = 'ai',
+}
+
+class Prioridade extends BaseEntity {
+  userId: string;
+  title: string;
+  description?: string;
+  quadrant: EisenhowerQuadrant;
+  tags: string[];
+  status: PriorityStatus;
+  origin: PriorityOrigin;
+  displayOrder: number; // Ordem dentro do quadrante
+}
+```
+
+### 2.2 Tarefa
+
+```typescript
+enum TaskClassification {
+  DO = 'do',           // Fazer
+  SCHEDULE = 'schedule', // Agendar
+  DELEGATE = 'delegate', // Delegar
+  ELIMINATE = 'eliminate', // Eliminar
+}
+
+enum TaskStatus {
+  OPEN = 'open',
+  IN_PROGRESS = 'in_progress',
+  COMPLETED = 'completed',
+  CANCELLED = 'cancelled',
+}
+
+enum TaskOrigin {
+  MANUAL = 'manual',
+  AI = 'ai',
+}
+
+class Tarefa extends BaseEntity {
+  userId: string;
+  priorityId: string; // Obrigatório
+  title: string;
+  description?: string;
+  classification: TaskClassification;
+  idealDate?: Date; // Para tarefas Agendar
+  responsible?: string; // Para tarefas Delegar (texto livre)
+  status: TaskStatus;
+  origin: TaskOrigin;
+  meetingReference?: string; // ID/nome da reunião (quando criada via Inbox)
+}
+```
+
+### 2.3 Inbox Item
+
+```typescript
+enum InboxItemStatus {
+  PENDING = 'pending',     // Aguardando processamento
+  PROCESSED = 'processed', // Processado pela IA
+  ACCEPTED = 'accepted',   // Aceito pelo usuário
+  DISCARDED = 'discarded', // Descartado
+}
+
+class InboxItem extends BaseEntity {
+  userId: string;
+  meetingTitle?: string;
+  meetingContent: string; // Resumo da reunião
+  status: InboxItemStatus;
+  suggestions: ActionSuggestion[]; // Sugestões da IA
+  processedAt?: Date;
+}
+
+class ActionSuggestion {
+  id: string; // ID temporário para referência
+  relevantText?: string; // Trecho do resumo
+  actionSummary: string; // Resumo da ação sugerida
+  suggestedPriority: {
+    title: string;
+    quadrant: EisenhowerQuadrant;
+    tags: string[];
+  };
+  suggestedTask: {
+    title: string;
+    classification: TaskClassification;
+    idealDate?: Date;
+    responsible?: string;
+  };
+  meetingReference: string; // Título da reunião
+}
+```
+
+---
+
+## 3. Endpoints REST
+
+### 3.1 Prioridades
+
+#### `GET /priorities`
+Lista todas as prioridades do usuário autenticado.
+
+**Query Parameters:**
+- `status?: PriorityStatus` - Filtrar por status
+- `quadrant?: EisenhowerQuadrant` - Filtrar por quadrante
+- `tags?: string[]` - Filtrar por tags (separadas por vírgula)
+- `origin?: PriorityOrigin` - Filtrar por origem
+
+**Response:**
+```typescript
+{
+  priorities: PriorityResponseDto[];
+}
+```
+
+#### `GET /priorities/:id`
+Obtém uma prioridade específica.
+
+**Response:**
+```typescript
+PriorityResponseDto
+```
+
+#### `POST /priorities`
+Cria uma nova prioridade.
+
+**Request Body:**
+```typescript
+{
+  title: string;
+  description?: string;
+  quadrant: EisenhowerQuadrant;
+  tags?: string[];
+  origin?: PriorityOrigin; // Default: 'manual'
+}
+```
+
+**Response:**
+```typescript
+PriorityResponseDto
+```
+
+#### `PATCH /priorities/:id`
+Atualiza uma prioridade existente.
+
+**Request Body:**
+```typescript
+{
+  title?: string;
+  description?: string;
+  quadrant?: EisenhowerQuadrant;
+  tags?: string[];
+  status?: PriorityStatus;
+}
+```
+
+**Response:**
+```typescript
+PriorityResponseDto
+```
+
+#### `POST /priorities/:id/move`
+Move uma prioridade para outro quadrante e/ou atualiza ordem.
+
+**Request Body:**
+```typescript
+{
+  quadrant: EisenhowerQuadrant;
+  displayOrder?: number; // Nova posição no quadrante
+}
+```
+
+**Response:**
+```typescript
+PriorityResponseDto
+```
+
+#### `POST /priorities/:id/reorder`
+Reordena prioridades dentro de um quadrante.
+
+**Request Body:**
+```typescript
+{
+  priorityIds: string[]; // IDs na nova ordem
+}
+```
+
+**Response:**
+```typescript
+{
+  success: boolean;
+}
+```
+
+#### `POST /priorities/:id/archive`
+Arquiva uma prioridade.
+
+**Response:**
+```typescript
+PriorityResponseDto
+```
+
+#### `DELETE /priorities/:id`
+Exclui permanentemente uma prioridade (exige confirmação no frontend).
+
+**Response:**
+```typescript
+{
+  success: boolean;
+}
+```
+
+### 3.2 Tarefas
+
+#### `GET /priorities/:priorityId/tasks`
+Lista todas as tarefas de uma prioridade.
+
+**Query Parameters:**
+- `classification?: TaskClassification` - Filtrar por classificação
+- `status?: TaskStatus` - Filtrar por status
+
+**Response:**
+```typescript
+{
+  tasks: TaskResponseDto[];
+}
+```
+
+#### `GET /tasks/:id`
+Obtém uma tarefa específica.
+
+**Response:**
+```typescript
+TaskResponseDto
+```
+
+#### `POST /priorities/:priorityId/tasks`
+Cria uma nova tarefa vinculada a uma prioridade.
+
+**Request Body:**
+```typescript
+{
+  title: string;
+  description?: string;
+  classification: TaskClassification;
+  idealDate?: Date; // Obrigatório se classification = 'schedule'
+  responsible?: string; // Obrigatório se classification = 'delegate'
+  origin?: TaskOrigin; // Default: 'manual'
+  meetingReference?: string;
+}
+```
+
+**Response:**
+```typescript
+TaskResponseDto
+```
+
+#### `PATCH /tasks/:id`
+Atualiza uma tarefa existente.
+
+**Request Body:**
+```typescript
+{
+  title?: string;
+  description?: string;
+  classification?: TaskClassification;
+  idealDate?: Date;
+  responsible?: string;
+  status?: TaskStatus;
+}
+```
+
+**Response:**
+```typescript
+TaskResponseDto
+```
+
+#### `POST /tasks/:id/move`
+Move uma tarefa para outra classificação.
+
+**Request Body:**
+```typescript
+{
+  classification: TaskClassification;
+  idealDate?: Date; // Se mudar para 'schedule'
+  responsible?: string; // Se mudar para 'delegate'
+}
+```
+
+**Response:**
+```typescript
+TaskResponseDto
+```
+
+#### `POST /tasks/:id/complete`
+Marca uma tarefa como concluída.
+
+**Response:**
+```typescript
+TaskResponseDto
+```
+
+#### `POST /tasks/:id/cancel`
+Cancela uma tarefa.
+
+**Response:**
+```typescript
+TaskResponseDto
+```
+
+#### `DELETE /tasks/:id`
+Exclui permanentemente uma tarefa.
+
+**Response:**
+```typescript
+{
+  success: boolean;
+}
+```
+
+### 3.3 Inbox
+
+#### `GET /inbox`
+Lista todos os itens da inbox do usuário.
+
+**Query Parameters:**
+- `status?: InboxItemStatus` - Filtrar por status
+
+**Response:**
+```typescript
+{
+  items: InboxItemResponseDto[];
+}
+```
+
+#### `GET /inbox/:id`
+Obtém um item específico da inbox com suas sugestões.
+
+**Response:**
+```typescript
+InboxItemResponseDto
+```
+
+#### `POST /inbox/process`
+Processa um resumo de reunião e gera sugestões de ações.
+
+**Request Body:**
+```typescript
+{
+  meetingTitle?: string;
+  meetingContent: string; // Resumo da reunião
+}
+```
+
+**Response:**
+```typescript
+{
+  inboxItemId: string;
+  suggestions: ActionSuggestion[];
+}
+```
+
+#### `POST /inbox/:id/accept`
+Aceita uma sugestão e cria prioridade/tarefa.
+
+**Request Body:**
+```typescript
+{
+  suggestionId: string;
+  adjustments?: {
+    priority?: {
+      title?: string;
+      quadrant?: EisenhowerQuadrant;
+      tags?: string[];
+    };
+    task?: {
+      title?: string;
+      classification?: TaskClassification;
+      idealDate?: Date;
+      responsible?: string;
+    };
+  };
+  linkToExistingPriorityId?: string; // Se quiser vincular a prioridade existente
+}
+```
+
+**Response:**
+```typescript
+{
+  priority: PriorityResponseDto;
+  task: TaskResponseDto;
+}
+```
+
+#### `POST /inbox/:id/discard`
+Descarta uma sugestão.
+
+**Request Body:**
+```typescript
+{
+  suggestionId: string;
+}
+```
+
+**Response:**
+```typescript
+{
+  success: boolean;
+}
+```
+
+#### `DELETE /inbox/:id`
+Remove um item da inbox.
+
+**Response:**
+```typescript
+{
+  success: boolean;
+}
+```
+
+### 3.4 Chat com IA (Extensão)
+
+#### `POST /ai/chat`
+Chat existente, mas agora com capacidade de criar/editar prioridades e tarefas.
+
+**Nota:** A comunicação com a IA utiliza formato TOON para eficiência em tokens. O backend converte automaticamente entre TOON e JSON.
+
+**Request Body:**
+```typescript
+{
+  conversationId: string;
+  message: string;
+  context?: {
+    priorities?: PriorityResponseDto[];
+    tasks?: TaskResponseDto[];
+  };
+}
+```
+
+**Response:**
+```typescript
+{
+  response: string; // Resposta em texto natural
+  actions?: {
+    type: 'create_priority' | 'create_task' | 'update_priority' | 'update_task' | 'move_priority' | 'move_task';
+    data: any; // Dados decodificados do TOON retornado pela IA
+  }[];
+}
+```
+
+### 3.5 Relatórios
+
+#### `GET /reports/daily`
+Relatório diário.
+
+**Response:**
+```typescript
+{
+  date: string;
+  prioritiesByQuadrant: {
+    Q1: number;
+    Q2: number;
+    Q3: number;
+    Q4: number;
+  };
+  openTasks: number;
+  completedTasksToday: number;
+}
+```
+
+#### `GET /reports/weekly`
+Relatório semanal.
+
+**Query Parameters:**
+- `weekStart?: string` - Data de início da semana (ISO format)
+
+**Response:**
+```typescript
+{
+  weekStart: string;
+  weekEnd: string;
+  completedTasksByClassification: {
+    do: number;
+    schedule: number;
+    delegate: number;
+    eliminate: number;
+  };
+  actionsByOrigin: {
+    manual: number;
+    ai: number;
+  };
+}
+```
+
+---
+
+## 4. DTOs (Data Transfer Objects)
+
+### 4.1 Prioridade
+
+```typescript
+// Request DTOs
+class CreatePriorityDto {
+  title: string;
+  description?: string;
+  quadrant: EisenhowerQuadrant;
+  tags?: string[];
+  origin?: PriorityOrigin;
+}
+
+class UpdatePriorityDto {
+  title?: string;
+  description?: string;
+  quadrant?: EisenhowerQuadrant;
+  tags?: string[];
+  status?: PriorityStatus;
+}
+
+class MovePriorityDto {
+  quadrant: EisenhowerQuadrant;
+  displayOrder?: number;
+}
+
+class ReorderPrioritiesDto {
+  priorityIds: string[];
+}
+
+// Response DTO
+class PriorityResponseDto {
+  id: string;
+  userId: string;
+  title: string;
+  description?: string;
+  quadrant: EisenhowerQuadrant;
+  tags: string[];
+  status: PriorityStatus;
+  origin: PriorityOrigin;
+  displayOrder: number;
+  taskCount?: number; // Contador de tarefas abertas
+  createdAt: Date;
+  updatedAt: Date;
+}
+```
+
+### 4.2 Tarefa
+
+```typescript
+// Request DTOs
+class CreateTaskDto {
+  title: string;
+  description?: string;
+  classification: TaskClassification;
+  idealDate?: Date;
+  responsible?: string;
+  origin?: TaskOrigin;
+  meetingReference?: string;
+}
+
+class UpdateTaskDto {
+  title?: string;
+  description?: string;
+  classification?: TaskClassification;
+  idealDate?: Date;
+  responsible?: string;
+  status?: TaskStatus;
+}
+
+class MoveTaskDto {
+  classification: TaskClassification;
+  idealDate?: Date;
+  responsible?: string;
+}
+
+// Response DTO
+class TaskResponseDto {
+  id: string;
+  userId: string;
+  priorityId: string;
+  title: string;
+  description?: string;
+  classification: TaskClassification;
+  idealDate?: Date;
+  responsible?: string;
+  status: TaskStatus;
+  origin: TaskOrigin;
+  meetingReference?: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+```
+
+### 4.3 Inbox
+
+```typescript
+// Request DTOs
+class ProcessInboxDto {
+  meetingTitle?: string;
+  meetingContent: string;
+}
+
+class AcceptSuggestionDto {
+  suggestionId: string;
+  adjustments?: {
+    priority?: {
+      title?: string;
+      quadrant?: EisenhowerQuadrant;
+      tags?: string[];
+    };
+    task?: {
+      title?: string;
+      classification?: TaskClassification;
+      idealDate?: Date;
+      responsible?: string;
+    };
+  };
+  linkToExistingPriorityId?: string;
+}
+
+class DiscardSuggestionDto {
+  suggestionId: string;
+}
+
+// Response DTOs
+class ActionSuggestionDto {
+  id: string;
+  relevantText?: string;
+  actionSummary: string;
+  suggestedPriority: {
+    title: string;
+    quadrant: EisenhowerQuadrant;
+    tags: string[];
+  };
+  suggestedTask: {
+    title: string;
+    classification: TaskClassification;
+    idealDate?: Date;
+    responsible?: string;
+  };
+  meetingReference: string;
+}
+
+class InboxItemResponseDto {
+  id: string;
+  userId: string;
+  meetingTitle?: string;
+  meetingContent: string;
+  status: InboxItemStatus;
+  suggestions: ActionSuggestionDto[];
+  processedAt?: Date;
+  createdAt: Date;
+  updatedAt: Date;
+}
+```
+
+---
+
+## 5. Fluxos Técnicos Principais
+
+### 5.1 Criação de Prioridade via Chat
+
+1. Usuário envia mensagem no chat: "Crie uma prioridade urgente e importante chamada 'Fechar proposta'"
+2. `ChatUseCase` processa a mensagem com Vertex AI (formato TOON)
+3. Vertex AI identifica intenção de criar prioridade e retorna dados em TOON
+4. `ChatUseCase` decodifica resposta TOON e chama `CreatePriorityUseCase`
+5. Prioridade é criada no Firestore
+6. Resposta do chat confirma criação
+7. Frontend atualiza interface (matriz de prioridades)
+
+### 5.2 Processamento de Inbox
+
+1. Usuário envia resumo de reunião via `POST /inbox/process`
+2. `ProcessInboxUseCase` cria `InboxItem` com status `PENDING`
+3. `ProcessInboxUseCase` chama serviço de IA com prompt específico (formato TOON)
+4. IA analisa resumo e retorna sugestões em formato TOON
+5. `ProcessInboxUseCase` decodifica TOON para `ActionSuggestion[]`
+6. `InboxItem` é atualizado com sugestões e status `PROCESSED`
+7. Frontend exibe sugestões para revisão do usuário
+8. Usuário aceita/ajusta/descarta cada sugestão
+9. Ao aceitar, `AcceptSuggestionUseCase` cria `Prioridade` e `Tarefa`
+
+### 5.3 Repriorização via Drag-and-Drop
+
+1. Usuário arrasta card de prioridade para outro quadrante
+2. Frontend chama `POST /priorities/:id/move`
+3. `MovePriorityUseCase` atualiza `quadrant` e `displayOrder`
+4. Se necessário, `MovePriorityUseCase` reordena outras prioridades
+5. Firestore atualiza documentos
+6. Frontend atualiza matriz
+
+### 5.4 Mover Tarefa entre Classificações
+
+1. Usuário arrasta tarefa de "Fazer" para "Delegar"
+2. Frontend solicita responsável (se necessário)
+3. Frontend chama `POST /tasks/:id/move`
+4. `MoveTaskUseCase` valida campos obrigatórios (ex.: `responsible` para Delegar)
+5. `MoveTaskUseCase` atualiza `classification` e campos relacionados
+6. Firestore atualiza documento
+7. Frontend atualiza visualização
+
+---
+
+## 6. Estrutura no Firestore
+
+### 6.1 Coleções
+
+```
+users/{userId}
+  - Dados do usuário
+
+priorities/{priorityId}
+  - userId: string
+  - title: string
+  - description?: string
+  - quadrant: string (Q1, Q2, Q3, Q4)
+  - tags: string[]
+  - status: string (active, completed, archived)
+  - origin: string (manual, ai)
+  - displayOrder: number
+  - createdAt: Timestamp
+  - updatedAt: Timestamp
+
+tasks/{taskId}
+  - userId: string
+  - priorityId: string
+  - title: string
+  - description?: string
+  - classification: string (do, schedule, delegate, eliminate)
+  - idealDate?: Timestamp
+  - responsible?: string
+  - status: string (open, in_progress, completed, cancelled)
+  - origin: string (manual, ai)
+  - meetingReference?: string
+  - createdAt: Timestamp
+  - updatedAt: Timestamp
+
+inbox/{inboxItemId}
+  - userId: string
+  - meetingTitle?: string
+  - meetingContent: string
+  - status: string (pending, processed, accepted, discarded)
+  - suggestions: ActionSuggestion[]
+  - processedAt?: Timestamp
+  - createdAt: Timestamp
+  - updatedAt: Timestamp
+```
+
+### 6.2 Índices Necessários
+
+```
+priorities:
+  - userId + status + quadrant (composite)
+  - userId + tags (array-contains)
+  - userId + origin
+
+tasks:
+  - userId + priorityId + classification
+  - userId + priorityId + status
+  - userId + status
+
+inbox:
+  - userId + status
+  - userId + createdAt (desc)
+```
+
+---
+
+## 7. Integração com IA
+
+### 7.1 Formato de Comunicação: TOON
+
+Toda comunicação com modelos de IA (Vertex AI/Gemini) utiliza o formato **TOON** (Token-Oriented Object Notation) ao invés de JSON.
+
+**Vantagens do TOON:**
+- Mais compacto e eficiente em tokens
+- Legível por humanos e modelos de IA
+- Schema-aware (estrutura auto-documentada)
+- Melhor performance em prompts longos
+
+**Biblioteca:** `@toon-format/toon` (TypeScript)
+
+**Documentação:** https://github.com/toon-format/toon
+
+### 7.2 Prompt para Processamento de Inbox
+
+```
+Você é um assistente especializado em extrair ações e prioridades de resumos de reuniões.
+
+Analise o seguinte resumo de reunião e identifique:
+1. Prioridades que devem ser criadas (com quadrante Eisenhower)
+2. Tarefas específicas vinculadas a cada prioridade (com classificação)
+
+Resumo da reunião:
+{meetingContent}
+
+Retorne a resposta no formato TOON seguindo esta estrutura:
+
+```toon
+suggestions[N]{id,relevantText,actionSummary,priorityTitle,priorityQuadrant,priorityTags,taskTitle,taskClassification,taskIdealDate,taskResponsible}:
+  sug1,"Na reunião foi decidido...","Fechar proposta comercial","Fechar proposta Congregação","urgent_and_important","trabalho,comercial","Revisar orçamento com financeiro","do",,
+  sug2,"Planejamento para julho...","Organizar férias","Planejar férias de julho","important_not_urgent","pessoal,família","Pesquisar hotéis","schedule","2024-07-01",
+  sug3,"João ficará responsável...","Delegar análise técnica","Implementar nova feature","urgent_not_important","trabalho,desenvolvimento","Analisar viabilidade técnica","delegate",,"João Silva"
+```
+
+**Nota:** Campos vazios são representados por vírgulas consecutivas (ex: `,,`). Strings com vírgulas internas devem ser escapadas ou usar outro delimitador.
+
+Campos:
+- id: identificador único da sugestão
+- relevantText: trecho do resumo relevante (opcional)
+- actionSummary: resumo curto da ação sugerida
+- priorityTitle: título da prioridade sugerida
+- priorityQuadrant: urgent_and_important | important_not_urgent | urgent_not_important | not_urgent_not_important
+- priorityTags: tags separadas por vírgula (opcional)
+- taskTitle: título da tarefa sugerida
+- taskClassification: do | schedule | delegate | eliminate
+- taskIdealDate: data ISO (opcional, apenas para schedule)
+- taskResponsible: nome do responsável (opcional, apenas para delegate)
+```
+
+### 7.3 Prompt para Chat com Contexto
+
+```
+Você é um assistente de organização pessoal que ajuda a gerenciar prioridades e tarefas usando a Matriz de Eisenhower.
+
+Contexto atual do usuário (formato TOON):
+
+Prioridades ativas:
+```toon
+priorities[N]{id,title,quadrant,status,tags,taskCount}:
+  {priorities}
+```
+
+Tarefas abertas:
+```toon
+tasks[N]{id,priorityId,title,classification,status,idealDate,responsible}:
+  {tasks}
+```
+
+O usuário pode pedir para:
+- Criar prioridades e tarefas
+- Mover prioridades entre quadrantes
+- Reclassificar tarefas
+- Listar e revisar itens
+- Organizar e repriorizar
+
+Quando precisar retornar dados estruturados (criações, atualizações, listagens), use o formato TOON.
+
+Exemplo de resposta estruturada ao criar prioridade:
+```toon
+actions[1]{type,priorityId,taskId,message}:
+  create_priority,priority123,,Prioridade "Fechar proposta" criada no quadrante Urgente e Importante
+```
+
+Exemplo de resposta ao listar prioridades:
+```toon
+priorities[2]{id,title,quadrant,status,taskCount}:
+  priority123,Fechar proposta,urgent_and_important,active,3
+  priority456,Planejar férias,important_not_urgent,active,0
+```
+
+Sempre confirme ações antes de executar ações destrutivas.
+Após executar uma ação, confirme o que foi feito de forma clara.
+
+Mensagem do usuário: {message}
+```
+
+---
+
+## 8. Regras de Validação Técnica
+
+### 8.1 Prioridade
+
+- `title`: obrigatório, mínimo 3 caracteres, máximo 200
+- `quadrant`: obrigatório, deve ser Q1, Q2, Q3 ou Q4
+- `tags`: array de strings, cada tag máximo 50 caracteres
+- `displayOrder`: número inteiro positivo, único dentro do quadrante
+- Ao mover para outro quadrante, `displayOrder` deve ser recalculado
+
+### 8.2 Tarefa
+
+- `title`: obrigatório, mínimo 3 caracteres, máximo 200
+- `priorityId`: obrigatório, deve existir e pertencer ao usuário
+- `classification`: obrigatório, deve ser do, schedule, delegate ou eliminate
+- `idealDate`: obrigatório se `classification = 'schedule'`
+- `responsible`: obrigatório se `classification = 'delegate'`
+- Não é possível criar tarefa em prioridade arquivada
+
+### 8.3 Inbox
+
+- `meetingContent`: obrigatório, mínimo 10 caracteres
+- `meetingTitle`: opcional, máximo 200 caracteres
+- Ao processar, status muda de `PENDING` para `PROCESSED`
+- Sugestões só podem ser aceitas se status = `PROCESSED`
+
+---
+
+## 9. Tratamento de Erros
+
+### 9.1 Códigos HTTP
+
+- `200 OK`: Sucesso
+- `201 Created`: Recurso criado
+- `400 Bad Request`: Dados inválidos
+- `401 Unauthorized`: Não autenticado
+- `403 Forbidden`: Sem permissão
+- `404 Not Found`: Recurso não encontrado
+- `409 Conflict`: Conflito (ex.: ordem duplicada)
+- `500 Internal Server Error`: Erro do servidor
+
+### 9.2 Formato de Erro
+
+```typescript
+{
+  statusCode: number;
+  message: string;
+  error?: string;
+  details?: any;
+}
+```
+
+---
+
+## 10. Ordem de Implementação Sugerida
+
+1. **Dependências**: Instalar `@toon-format/toon` no backend
+2. **Domain**: Entidades `Prioridade` e `Tarefa`
+3. **Domain**: Interfaces de repositórios
+4. **Application**: DTOs
+5. **Application**: Use Cases básicos (Create, Get, Update)
+6. **Infrastructure**: Repositórios Firestore
+7. **Presentation**: Controllers REST
+8. **Application**: Use Cases avançados (Move, Reorder, Process Inbox)
+9. **Infrastructure**: Integração com IA para Inbox (usando TOON)
+10. **Application**: Extensão do ChatUseCase para prioridades/tarefas (usando TOON)
+11. **Presentation**: Endpoints de relatórios
+
+---
+
+## 11. Considerações de Performance
+
+- Usar paginação em listagens grandes (limite padrão: 50 itens)
+- Cache de prioridades ativas no frontend
+- Processamento de Inbox assíncrono (futuro: fila de processamento)
+- Índices compostos no Firestore para consultas frequentes
+- Validação de dados no DTO antes de chegar ao Use Case
+- **TOON reduz significativamente o uso de tokens** em comunicação com IA (até 50% de economia comparado a JSON)
+
+---
+
+## 12. Segurança
+
+- Todas as rotas protegidas com `AuthGuard('jwt')`
+- Validação de `userId` em todos os Use Cases (garantir que recurso pertence ao usuário)
+- Validação de entrada com `class-validator` nos DTOs
+- Sanitização de conteúdo de reuniões antes de enviar à IA
+- Rate limiting em endpoints de IA (futuro)

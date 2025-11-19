@@ -1,0 +1,82 @@
+---
+description: Padrões para criação de componentes React
+globs:
+  - "**/components/**/*.tsx"
+  - "**/pages/**/*.tsx"
+alwaysApply: false
+---
+
+# Padrões de Componentes React
+
+## Template de Componente
+
+```typescript
+import React from 'react';
+
+interface ComponentProps {
+  title: string;
+  onClick: () => void;
+}
+
+export const Component: React.FC<ComponentProps> = ({ title, onClick }) => {
+  return (
+    <div>
+      <h1>{title}</h1>
+      <button onClick={onClick}>Click me</button>
+    </div>
+  );
+};
+```
+
+## Regras
+
+- Sempre use `React.FC` ou tipagem explícita
+- Props sempre tipadas com interface
+- Componentes exportados como named exports
+- Um componente por arquivo
+- Componentes funcionais apenas (sem classes)
+
+## Hooks
+
+### useState
+```typescript
+const [count, setCount] = useState<number>(0);
+const [user, setUser] = useState<User | null>(null);
+```
+
+### useEffect
+```typescript
+useEffect(() => {
+  // Efeito
+  return () => {
+    // Cleanup
+  };
+}, [dependencies]);
+```
+
+**Regras:**
+- Sempre inclua dependências no array
+- Use cleanup quando necessário
+- Evite efeitos desnecessários
+
+## Event Handlers
+
+```typescript
+const handleSubmit = (e: React.FormEvent) => {
+  e.preventDefault();
+  // Lógica
+};
+
+const handleClick = () => {
+  // Lógica
+};
+
+const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  setValue(e.target.value);
+};
+```
+
+**Regras:**
+- Sempre tipar eventos
+- Prefixo `handle` para handlers
+- Prevenir default em forms

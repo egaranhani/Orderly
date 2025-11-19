@@ -1,0 +1,49 @@
+---
+description: Padrões para criação de Repositórios (interfaces e implementações)
+globs:
+  - "**/repositories/**/*.ts"
+  - "**/*.repository.ts"
+alwaysApply: false
+---
+
+# Padrões de Repositórios
+
+## Interface (Domain)
+
+```typescript
+export interface IUserRepository {
+  findById(id: string): Promise<User | null>;
+  create(user: User): Promise<User>;
+  update(user: User): Promise<User>;
+  delete(id: string): Promise<void>;
+}
+```
+
+## Implementação (Infrastructure)
+
+```typescript
+@Injectable()
+export class FirestoreUserRepository implements IUserRepository {
+  constructor(private readonly firestore: Firestore) {}
+
+  async findById(id: string): Promise<User | null> {
+    // Implementação específica do Firestore
+  }
+}
+```
+
+## Regras
+
+- Interfaces no Domain, implementações na Infrastructure
+- Repositórios trabalham com Entidades, não DTOs
+- Métodos assíncronos retornam `Promise`
+- Implementações usam `@Injectable()` do NestJS
+- Sempre retornam `null` quando não encontrado (não lançam exceção)
+
+## Checklist
+
+- ✅ Interface definida em `domain/repositories/`
+- ✅ Implementação em `infrastructure/persistence/`
+- ✅ Implementa interface do Domain
+- ✅ Trabalha com Entidades, não DTOs
+- ✅ Métodos retornam `Promise`

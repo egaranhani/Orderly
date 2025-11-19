@@ -1,0 +1,28 @@
+---
+description: Checklist para criação de novas funcionalidades no frontend
+alwaysApply: false
+---
+
+# Checklist ao Criar Nova Funcionalidade
+
+1. ✅ Definir tipos TypeScript em `types/`
+2. ✅ Criar serviço em `services/` (se necessário)
+3. ✅ Criar componente em `components/` ou `pages/`
+4. ✅ Adicionar rota em `App.tsx` (se for página)
+5. ✅ Adicionar estilos CSS (se necessário)
+6. ✅ Testar funcionalidade completa
+
+## Ordem de Implementação
+
+1. **Types**: Definir interfaces primeiro
+2. **Services**: Criar serviços de API
+3. **Components/Pages**: Criar componentes
+4. **Routing**: Adicionar rotas
+5. **Styling**: Adicionar estilos
+
+## Validações
+
+- ✅ Props tipadas corretamente
+- ✅ Estados de loading e error tratados
+- ✅ Validação de autenticação em rotas protegidas
+- ✅ Tratamento de erros de API

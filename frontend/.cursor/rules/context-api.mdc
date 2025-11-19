@@ -1,0 +1,45 @@
+---
+description: Padrões para uso do Context API
+globs:
+  - "**/contexts/**/*.tsx"
+alwaysApply: false
+---
+
+# Context API
+
+## Template de Context
+
+```typescript
+interface ContextType {
+  value: string;
+  setValue: (value: string) => void;
+}
+
+const Context = createContext<ContextType | undefined>(undefined);
+
+export const Provider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const [value, setValue] = useState<string>('');
+  
+  return (
+    <Context.Provider value={{ value, setValue }}>
+      {children}
+    </Context.Provider>
+  );
+};
+
+export const useContext = () => {
+  const context = useContext(Context);
+  if (context === undefined) {
+    throw new Error('useContext must be used within Provider');
+  }
+  return context;
+};
+```
+
+## Regras
+
+- Sempre valide se o contexto existe
+- Providers exportados separadamente
+- Custom hooks para acessar contexto
+- Tipagem explícita do contexto
+- Tratamento de erro quando usado fora do Provider

@@ -1,0 +1,49 @@
+---
+description: Padrões para criação de Entidades na camada Domain
+globs:
+  - "**/entities/**/*.ts"
+alwaysApply: false
+---
+
+# Padrões de Entidades
+
+## Template de Entidade
+
+```typescript
+export class User extends BaseEntity {
+  email: string;
+  name: string;
+
+  constructor(
+    email: string,
+    name: string,
+    id?: string,
+  ) {
+    super(id);
+    this.email = email;
+    this.name = name;
+  }
+
+  isValid(): boolean {
+    // Lógica de validação de domínio
+    return this.email.includes('@');
+  }
+}
+```
+
+## Regras
+
+- Entidades contêm lógica de negócio
+- Sem decorators do NestJS
+- Sem dependências externas
+- Podem ter métodos que encapsulam regras de negócio
+- Estendem `BaseEntity` quando apropriado
+- Sempre no diretório `domain/entities/`
+
+## Checklist
+
+- ✅ Sem imports de NestJS ou bibliotecas externas
+- ✅ Sem decorators
+- ✅ Pode ter métodos de negócio
+- ✅ Construtor inicializa propriedades
+- ✅ Estende `BaseEntity` se necessário

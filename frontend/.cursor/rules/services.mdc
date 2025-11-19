@@ -1,0 +1,62 @@
+---
+description: Padrões para criação de serviços de API
+globs:
+  - "**/services/**/*.ts"
+alwaysApply: false
+---
+
+# Serviços de API
+
+## Template de Serviço
+
+```typescript
+import axios from 'axios';
+
+const API_URL = import.meta.env.VITE_API_URL || '/api';
+
+const getAuthHeaders = () => {
+  const token = localStorage.getItem('token');
+  return {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  };
+};
+
+export const service = {
+  getData: async (): Promise<DataType[]> => {
+    const response = await axios.get(`${API_URL}/endpoint`, getAuthHeaders());
+    return response.data;
+  },
+
+  createData: async (dto: CreateDto): Promise<DataType> => {
+    const response = await axios.post(
+      `${API_URL}/endpoint`,
+      dto,
+      getAuthHeaders(),
+    );
+    return response.data;
+  },
+};
+```
+
+## Regras
+
+- Um serviço por domínio (ex: `auth.service.ts`, `ai.service.ts`)
+- Sempre retornar tipos tipados
+- Usar `getAuthHeaders()` para requisições autenticadas
+- Tratar erros adequadamente
+- Usar variáveis de ambiente para URLs
+- Sempre usar `async/await`
+
+## Tratamento de Erros
+
+```typescript
+try {
+  const data = await service.getData();
+} catch (error) {
+  if (axios.isAxiosError(error)) {
+    console.error('API Error:', error.response?.data);
+  }
+}
+```
