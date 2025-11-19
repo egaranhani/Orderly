@@ -2,6 +2,8 @@
 
 Descreva brevemente o que esta PR implementa ou corrige.
 
+**Base:** `main` ← `feature/nome-da-branch`
+
 ## 🎯 Tipo de Mudança
 
 - [ ] ✨ Nova funcionalidade (feature)
