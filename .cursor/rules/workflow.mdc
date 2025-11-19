@@ -1,0 +1,89 @@
+---
+description: Workflow de desenvolvimento com Feature Branch
+alwaysApply: true
+---
+
+# Workflow de Desenvolvimento - Feature Branch
+
+## Regras para o Agent
+
+### Ao Iniciar Nova Funcionalidade
+
+1. **SEMPRE criar uma feature branch a partir de `develop`**
+   ```bash
+   git checkout develop
+   git pull origin develop
+   git checkout -b feature/nome-da-funcionalidade
+   ```
+
+2. **Nomenclatura de branches:**
+   - Features: `feature/nome-descritivo`
+   - Fixes: `fix/descricao-do-bug`
+   - Refactors: `refactor/descricao`
+   - Docs: `docs/descricao`
+
+3. **NUNCA commitar diretamente em `main` ou `develop`**
+
+### Durante o Desenvolvimento
+
+1. **Commits frequentes e atômicos**
+   - Um commit por mudança lógica
+   - Mensagens claras e descritivas
+
+2. **Formato de mensagem de commit:**
+   ```
+   tipo(escopo): descrição curta
+   
+   Descrição detalhada (opcional)
+   ```
+
+   Tipos: `feat`, `fix`, `refactor`, `docs`, `style`, `test`, `chore`
+
+3. **Manter branch atualizada:**
+   - Periodicamente fazer rebase com `develop`
+   - Resolver conflitos antes de finalizar
+
+### Ao Finalizar Feature
+
+1. **Push da branch:**
+   ```bash
+   git push origin feature/nome-da-funcionalidade
+   ```
+
+2. **Criar Pull Request:**
+   - Base: `develop`
+   - Compare: `feature/nome-da-funcionalidade`
+   - Preencher template de PR
+
+3. **Aguardar code review antes de merge**
+
+### Checklist Antes de PR
+
+- [ ] Código segue padrões do projeto
+- [ ] Clean Architecture respeitada
+- [ ] Sem dependências circulares
+- [ ] Validações implementadas
+- [ ] Tratamento de erros adequado
+- [ ] Testado localmente
+- [ ] Branch atualizada com `develop`
+
+## Comandos Úteis
+
+```bash
+# Ver branch atual
+git branch
+
+# Ver diferenças com develop
+git diff develop
+
+# Atualizar branch com develop
+git fetch origin
+git rebase origin/develop
+
+# Ver commits não sincronizados
+git log origin/develop..HEAD
+```
+
+## Referência
+
+Ver documentação completa em: `.github/WORKFLOW.md`
