@@ -9,10 +9,10 @@ alwaysApply: true
 
 ### Ao Iniciar Nova Funcionalidade
 
-1. **SEMPRE criar uma feature branch a partir de `develop`**
+1. **SEMPRE criar uma feature branch a partir de `main`**
    ```bash
-   git checkout develop
-   git pull origin develop
+   git checkout main
+   git pull origin main
    git checkout -b feature/nome-da-funcionalidade
    ```
 
@@ -22,7 +22,7 @@ alwaysApply: true
    - Refactors: `refactor/descricao`
    - Docs: `docs/descricao`
 
-3. **NUNCA commitar diretamente em `main` ou `develop`**
+3. **NUNCA commitar diretamente em `main`**
 
 ### Durante o Desenvolvimento
 
@@ -40,7 +40,7 @@ alwaysApply: true
    Tipos: `feat`, `fix`, `refactor`, `docs`, `style`, `test`, `chore`
 
 3. **Manter branch atualizada:**
-   - Periodicamente fazer rebase com `develop`
+   - Periodicamente fazer rebase com `main`
    - Resolver conflitos antes de finalizar
 
 ### Ao Finalizar Feature
@@ -51,7 +51,7 @@ alwaysApply: true
    ```
 
 2. **Criar Pull Request:**
-   - Base: `develop`
+   - Base: `main`
    - Compare: `feature/nome-da-funcionalidade`
    - Preencher template de PR
 
@@ -65,7 +65,7 @@ alwaysApply: true
 - [ ] Validações implementadas
 - [ ] Tratamento de erros adequado
 - [ ] Testado localmente
-- [ ] Branch atualizada com `develop`
+- [ ] Branch atualizada com `main`
 
 ## Comandos Úteis
 
@@ -73,15 +73,15 @@ alwaysApply: true
 # Ver branch atual
 git branch
 
-# Ver diferenças com develop
-git diff develop
+# Ver diferenças com main
+git diff main
 
-# Atualizar branch com develop
+# Atualizar branch com main
 git fetch origin
-git rebase origin/develop
+git rebase origin/main
 
 # Ver commits não sincronizados
-git log origin/develop..HEAD
+git log origin/main..HEAD
 ```
 
 ## Referência

@@ -139,19 +139,19 @@ gcloud run deploy orderlyai-backend --source .
 
 O projeto utiliza **Feature Branch Workflow**:
 
-- **`main`**: Branch de produção (código estável)
-- **`develop`**: Branch de desenvolvimento (integração)
-- **`feature/*`**: Branches para novas funcionalidades
+- **`main`**: Branch principal (código estável e pronto para produção)
+- **`feature/*`**: Branches para novas funcionalidades (criadas a partir de `main`)
 - **`fix/*`**: Branches para correções
 
 **Fluxo:**
-1. Criar branch a partir de `develop`: `git checkout -b feature/nome-da-funcionalidade`
+1. Criar branch a partir de `main`: `git checkout -b feature/nome-da-funcionalidade`
 2. Desenvolver e commitar
-3. Criar Pull Request para `develop`
-4. Após aprovação, merge em `develop`
-5. Release para `main` quando estável
+3. Criar Pull Request para `main`
+4. Após aprovação, merge em `main`
+5. Deletar branch de feature após merge
 
-📖 **Documentação completa:** [.github/WORKFLOW.md](.github/WORKFLOW.md)
+📖 **Documentação completa:** [.github/WORKFLOW.md](.github/WORKFLOW.md)  
+📚 **Referência:** [Atlassian Feature Branch Workflow](https://www.atlassian.com/git/tutorials/comparing-workflows/feature-branch-workflow)
 
 ### Princípios
 

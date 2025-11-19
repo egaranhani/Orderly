@@ -1,19 +1,22 @@
 # 🔄 Workflow de Desenvolvimento - Feature Branch
 
-Este documento descreve o workflow de desenvolvimento usando **Feature Branch** para o projeto OrderlyAI.
+Este documento descreve o workflow de desenvolvimento usando **Feature Branch Workflow** para o projeto OrderlyAI.
 
 ## 📋 Visão Geral
 
-O projeto utiliza o workflow **Feature Branch**, onde cada funcionalidade é desenvolvida em uma branch separada e integrada via Pull Requests.
+O projeto utiliza o workflow **Feature Branch**, onde cada funcionalidade é desenvolvida em uma branch separada criada diretamente a partir de `main` e integrada via Pull Requests.
+
+**Referência:** [Atlassian Feature Branch Workflow](https://www.atlassian.com/git/tutorials/comparing-workflows/feature-branch-workflow)
 
 ## 🌳 Estrutura de Branches
 
-### Branches Principais
+### Branch Principal
 
-- **`main`**: Branch de produção. Contém apenas código estável e testado.
-- **`develop`**: Branch de desenvolvimento. Contém código integrado e testado, pronto para release.
+- **`main`**: Branch de produção. Contém código estável e testado, sempre pronto para deploy.
 
 ### Branches de Feature
+
+Todas as branches de feature são criadas **diretamente a partir de `main`**:
 
 - **`feature/*`**: Branches para novas funcionalidades
   - Exemplo: `feature/prioridades-crud`, `feature/inbox-processing`
@@ -29,11 +32,11 @@ O projeto utiliza o workflow **Feature Branch**, onde cada funcionalidade é des
 ### 1. Criar uma Feature Branch
 
 ```bash
-# Atualizar develop
-git checkout develop
-git pull origin develop
+# Atualizar main
+git checkout main
+git pull origin main
 
-# Criar nova feature branch
+# Criar nova feature branch a partir de main
 git checkout -b feature/nome-da-funcionalidade
 ```
 
@@ -75,19 +78,19 @@ Exemplos:
 
 ### 3. Manter a Branch Atualizada
 
-Periodicamente, atualize sua branch com as mudanças de `develop`:
+Periodicamente, atualize sua branch com as mudanças de `main`:
 
 ```bash
 # Na sua feature branch
 git checkout feature/nome-da-funcionalidade
 git fetch origin
-git rebase origin/develop
+git rebase origin/main
 ```
 
 **Ou use merge (se preferir):**
 ```bash
 git checkout feature/nome-da-funcionalidade
-git merge origin/develop
+git merge origin/main
 ```
 
 ### 4. Criar Pull Request
@@ -100,9 +103,9 @@ git push origin feature/nome-da-funcionalidade
 ```
 
 2. **Criar Pull Request no GitHub:**
-   - Base: `develop`
+   - Base: `main`
    - Compare: `feature/nome-da-funcionalidade`
-   - Preencher template de PR (se existir)
+   - Preencher template de PR
 
 3. **Revisão:**
    - Aguardar code review
@@ -114,21 +117,19 @@ git push origin feature/nome-da-funcionalidade
 Após aprovação:
 - Merge será feito via GitHub (squash merge recomendado)
 - Branch de feature será deletada após merge
-- `develop` será atualizada automaticamente
+- `main` será atualizada automaticamente
 
-### 6. Release para Produção
+### 6. Deletar Branch Local
 
-Quando `develop` estiver estável:
+Após merge bem-sucedido:
 
 ```bash
-# Criar release branch (opcional)
-git checkout -b release/v1.0.0 develop
-
-# Após testes, merge para main
+# Atualizar main local
 git checkout main
-git merge develop
-git tag v1.0.0
-git push origin main --tags
+git pull origin main
+
+# Deletar branch local
+git branch -d feature/nome-da-funcionalidade
 ```
 
 ## 📝 Checklist para Pull Requests
@@ -142,19 +143,19 @@ Antes de criar um PR, verifique:
 - [ ] Tratamento de erros adequado
 - [ ] Código testado localmente
 - [ ] Documentação atualizada (se necessário)
-- [ ] Branch atualizada com `develop`
+- [ ] Branch atualizada com `main`
 - [ ] Commits organizados e com mensagens claras
 
 ## 🚫 Regras Importantes
 
-1. **NUNCA commitar diretamente em `main` ou `develop`**
+1. **NUNCA commitar diretamente em `main`**
    - Use sempre feature branches
    - Integração via Pull Requests
 
 2. **NUNCA fazer force push em branches compartilhadas**
    - Apenas em suas feature branches locais
 
-3. **Sempre atualizar `develop` antes de criar nova feature**
+3. **Sempre atualizar `main` antes de criar nova feature**
    - Evita conflitos desnecessários
 
 4. **Mantenha branches de feature pequenas e focadas**
@@ -171,14 +172,14 @@ Antes de criar um PR, verifique:
 git branch -a
 ```
 
-### Ver diferenças com develop
+### Ver diferenças com main
 ```bash
-git diff develop
+git diff main
 ```
 
 ### Ver commits não sincronizados
 ```bash
-git log origin/develop..HEAD
+git log origin/main..HEAD
 ```
 
 ### Limpar branches locais deletadas remotamente
@@ -187,9 +188,14 @@ git fetch --prune
 git branch -d feature/nome-deletado
 ```
 
+## 🎯 Vantagens deste Workflow
+
+- **Simplicidade**: Menos complexidade que Git Flow
+- **Agilidade**: Ciclos de desenvolvimento mais rápidos
+- **Facilidade de revisão**: Cada funcionalidade isolada
+- **Integração contínua**: PRs diretos para produção
+
 ## 📚 Referências
 
-- [Git Flow](https://nvie.com/posts/a-successful-git-branching-model/)
+- [Atlassian Feature Branch Workflow](https://www.atlassian.com/git/tutorials/comparing-workflows/feature-branch-workflow)
 - [Conventional Commits](https://www.conventionalcommits.org/)
-- [GitHub Flow](https://guides.github.com/introduction/flow/)
-
