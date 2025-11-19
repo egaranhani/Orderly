@@ -40,7 +40,7 @@ Adicione screenshots se a mudança afeta a interface.
 - [ ] Tratamento de erros adequado
 - [ ] Código testado localmente
 - [ ] Documentação atualizada (se necessário)
-- [ ] Branch atualizada com `develop`
+- [ ] Branch atualizada com `main`
 - [ ] Commits organizados e com mensagens claras
 
 ## 📝 Notas Adicionais
