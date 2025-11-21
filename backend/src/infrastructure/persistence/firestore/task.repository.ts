@@ -13,10 +13,10 @@ export class FirestoreTaskRepository implements ITaskRepository {
 
   async findById(id: string): Promise<Tarefa | null> {
     const doc = await this.collection.doc(id).get();
-    if (!doc.exists) {
+    if (!doc.exists || !doc.data()) {
       return null;
     }
-    return this.mapToEntity(doc.id, doc.data());
+    return this.mapToEntity(doc.id, doc.data()!);
   }
 
   async findByPriorityId(
@@ -93,20 +93,31 @@ export class FirestoreTaskRepository implements ITaskRepository {
   }
 
   private mapToFirestore(task: Tarefa): any {
-    return {
+    const data: any = {
       userId: task.userId,
       priorityId: task.priorityId,
       title: task.title,
-      description: task.description,
       classification: task.classification,
-      idealDate: task.idealDate,
-      responsible: task.responsible,
       status: task.status,
       origin: task.origin,
-      meetingReference: task.meetingReference,
       createdAt: task.createdAt,
       updatedAt: task.updatedAt,
     };
+
+    if (task.description !== undefined) {
+      data.description = task.description;
+    }
+    if (task.idealDate !== undefined) {
+      data.idealDate = task.idealDate;
+    }
+    if (task.responsible !== undefined) {
+      data.responsible = task.responsible;
+    }
+    if (task.meetingReference !== undefined) {
+      data.meetingReference = task.meetingReference;
+    }
+
+    return data;
   }
 }
 

@@ -13,10 +13,10 @@ export class FirestorePriorityRepository implements IPriorityRepository {
 
   async findById(id: string): Promise<Prioridade | null> {
     const doc = await this.collection.doc(id).get();
-    if (!doc.exists) {
+    if (!doc.exists || !doc.data()) {
       return null;
     }
-    return this.mapToEntity(doc.id, doc.data());
+    return this.mapToEntity(doc.id, doc.data()!);
   }
 
   async findByUserId(
@@ -107,10 +107,9 @@ export class FirestorePriorityRepository implements IPriorityRepository {
   }
 
   private mapToFirestore(priority: Prioridade): any {
-    return {
+    const data: any = {
       userId: priority.userId,
       title: priority.title,
-      description: priority.description,
       quadrant: priority.quadrant,
       tags: priority.tags,
       status: priority.status,
@@ -119,6 +118,12 @@ export class FirestorePriorityRepository implements IPriorityRepository {
       createdAt: priority.createdAt,
       updatedAt: priority.updatedAt,
     };
+
+    if (priority.description !== undefined) {
+      data.description = priority.description;
+    }
+
+    return data;
   }
 }
 

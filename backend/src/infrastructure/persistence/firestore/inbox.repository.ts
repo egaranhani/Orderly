@@ -13,10 +13,10 @@ export class FirestoreInboxRepository implements IInboxRepository {
 
   async findById(id: string): Promise<InboxItem | null> {
     const doc = await this.collection.doc(id).get();
-    if (!doc.exists) {
+    if (!doc.exists || !doc.data()) {
       return null;
     }
-    return this.mapToEntity(doc.id, doc.data());
+    return this.mapToEntity(doc.id, doc.data()!);
   }
 
   async findByUserId(userId: string, filters?: { status?: InboxItemStatus }): Promise<InboxItem[]> {
@@ -26,10 +26,10 @@ export class FirestoreInboxRepository implements IInboxRepository {
       query = query.where('status', '==', filters.status);
     }
 
-    query = query.orderBy('createdAt', 'desc');
-
     const snapshot = await query.get();
-    return snapshot.docs.map((doc) => this.mapToEntity(doc.id, doc.data()));
+    const items = snapshot.docs.map((doc) => this.mapToEntity(doc.id, doc.data()));
+    
+    return items.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
   }
 
   async create(inboxItem: InboxItem): Promise<InboxItem> {
@@ -84,26 +84,46 @@ export class FirestoreInboxRepository implements IInboxRepository {
   }
 
   private mapToFirestore(inboxItem: InboxItem): any {
-    return {
+    const data: any = {
       userId: inboxItem.userId,
-      meetingTitle: inboxItem.meetingTitle,
       meetingContent: inboxItem.meetingContent,
       status: inboxItem.status,
-      suggestions: inboxItem.suggestions.map((s) => ({
-        id: s.id,
-        relevantText: s.relevantText,
-        actionSummary: s.actionSummary,
-        suggestedPriority: s.suggestedPriority,
-        suggestedTask: {
-          ...s.suggestedTask,
-          idealDate: s.suggestedTask.idealDate,
-        },
-        meetingReference: s.meetingReference,
-      })),
-      processedAt: inboxItem.processedAt,
+      suggestions: inboxItem.suggestions.map((s) => {
+        const suggestion: any = {
+          id: s.id,
+          actionSummary: s.actionSummary,
+          suggestedPriority: s.suggestedPriority,
+          suggestedTask: {
+            title: s.suggestedTask.title,
+            classification: s.suggestedTask.classification,
+          },
+          meetingReference: s.meetingReference,
+        };
+
+        if (s.relevantText !== undefined) {
+          suggestion.relevantText = s.relevantText;
+        }
+        if (s.suggestedTask.idealDate !== undefined) {
+          suggestion.suggestedTask.idealDate = s.suggestedTask.idealDate;
+        }
+        if (s.suggestedTask.responsible !== undefined) {
+          suggestion.suggestedTask.responsible = s.suggestedTask.responsible;
+        }
+
+        return suggestion;
+      }),
       createdAt: inboxItem.createdAt,
       updatedAt: inboxItem.updatedAt,
     };
+
+    if (inboxItem.meetingTitle !== undefined) {
+      data.meetingTitle = inboxItem.meetingTitle;
+    }
+    if (inboxItem.processedAt !== undefined) {
+      data.processedAt = inboxItem.processedAt;
+    }
+
+    return data;
   }
 }
 

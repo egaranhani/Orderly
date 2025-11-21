@@ -13,10 +13,10 @@ export class FirestoreUserRepository implements IUserRepository {
 
   async findById(id: string): Promise<User | null> {
     const doc = await this.collection.doc(id).get();
-    if (!doc.exists) {
+    if (!doc.exists || !doc.data()) {
       return null;
     }
-    return this.mapToEntity(doc.id, doc.data());
+    return this.mapToEntity(doc.id, doc.data()!);
   }
 
   async findByEmail(email: string): Promise<User | null> {

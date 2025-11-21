@@ -19,6 +19,7 @@ import { IInboxRepository } from '@domain/repositories/inbox.repository.interfac
       useFactory: () => {
         return new Firestore({
           projectId: process.env.GOOGLE_CLOUD_PROJECT_ID,
+          databaseId: process.env.FIRESTORE_DATABASE_ID || '(default)',
         });
       },
     },
