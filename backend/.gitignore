@@ -6,3 +6,17 @@ node_modules
 coverage
 .nyc_output
 
+# Arquivos sensíveis - nunca commitar
+*.json
+!package.json
+!package-lock.json
+!tsconfig.json
+!tsconfig.build.json
+!nest-cli.json
+service-account*.json
+*-key.json
+*-credentials.json
+*.pem
+*.key
+*.crt
+

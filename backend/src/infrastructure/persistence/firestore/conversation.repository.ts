@@ -15,10 +15,10 @@ export class FirestoreConversationRepository
 
   async findById(id: string): Promise<Conversation | null> {
     const doc = await this.collection.doc(id).get();
-    if (!doc.exists) {
+    if (!doc.exists || !doc.data()) {
       return null;
     }
-    return this.mapToEntity(doc.id, doc.data());
+    return this.mapToEntity(doc.id, doc.data()!);
   }
 
   async findByUserId(userId: string): Promise<Conversation[]> {

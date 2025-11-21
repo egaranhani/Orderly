@@ -12,7 +12,6 @@ export class VertexAiService implements IAiService {
       model: 'gemini-2.0-flash-exp',
       temperature: 0.7,
       location: process.env.GOOGLE_CLOUD_LOCATION || 'us-central1',
-      project: process.env.GOOGLE_CLOUD_PROJECT_ID,
     });
   }
 
