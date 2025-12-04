@@ -65,24 +65,24 @@ O projeto está sendo implementado em fases incrementais, seguindo Clean Archite
 
 ---
 
-### 🔄 Fase 4: Presentation Layer - Controllers REST (EM PLANEJAMENTO)
+### ✅ Fase 4: Presentation Layer - Controllers REST (CONCLUÍDA)
 
 **Objetivo:** Implementar controllers REST para expor as funcionalidades via API.
 
 **Entregas:**
-- ⏳ PriorityController (CRUD completo)
-- ⏳ TaskController (CRUD completo)
-- ⏳ InboxController (process, accept, discard)
-- ⏳ ReportController (daily, weekly)
-- ⏳ Validação de DTOs com class-validator
-- ⏳ Guards de autenticação
-- ⏳ Tratamento de erros HTTP
+- ✅ PriorityController (CRUD completo)
+- ✅ TaskController (CRUD completo)
+- ✅ InboxController (process, accept, discard, delete)
+- ✅ ReportController (daily, weekly)
+- ✅ Validação de DTOs com class-validator
+- ✅ Guards de autenticação
+- ✅ Tratamento de erros HTTP
 
 **Testes:**
-- ⏳ Testes automatizados de aceitação (E2E) para endpoints REST
-- ⏳ Testes de autenticação e autorização
-- ⏳ Testes de validação de entrada
-- ⏳ Testes de tratamento de erros
+- ✅ Testes automatizados de aceitação (E2E) para endpoints REST
+- ✅ Testes de autenticação e autorização
+- ✅ Testes de validação de entrada
+- ✅ Testes de tratamento de erros
 
 ---
 
