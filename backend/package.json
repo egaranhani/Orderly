@@ -17,7 +17,14 @@
     "test:watch": "jest --watch",
     "test:cov": "jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
-    "test:e2e": "jest --config ./test/jest-e2e.json"
+    "test:e2e": "jest --config ./test/jest-e2e.json",
+    "test:integration": "ts-node -r tsconfig-paths/register test/integration/domain-infrastructure.test.ts",
+    "test:acceptance": "ts-node -r tsconfig-paths/register test/acceptance/priority.use-cases.test.ts && ts-node -r tsconfig-paths/register test/acceptance/task.use-cases.test.ts && ts-node -r tsconfig-paths/register test/acceptance/inbox.use-cases.test.ts && ts-node -r tsconfig-paths/register test/acceptance/report.use-cases.test.ts",
+    "test:acceptance:priority": "ts-node -r tsconfig-paths/register test/acceptance/priority.use-cases.test.ts",
+    "test:acceptance:task": "ts-node -r tsconfig-paths/register test/acceptance/task.use-cases.test.ts",
+    "test:acceptance:inbox": "ts-node -r tsconfig-paths/register test/acceptance/inbox.use-cases.test.ts",
+    "test:acceptance:report": "ts-node -r tsconfig-paths/register test/acceptance/report.use-cases.test.ts",
+    "test:all": "npm run test:integration && npm run test:acceptance"
   },
   "dependencies": {
     "@nestjs/common": "^10.3.0",

@@ -54,10 +54,11 @@ export class FirestorePriorityRepository implements IPriorityRepository {
     const snapshot = await this.collection
       .where('userId', '==', userId)
       .where('quadrant', '==', quadrant)
-      .orderBy('displayOrder', 'asc')
       .get();
 
-    return snapshot.docs.map((doc) => this.mapToEntity(doc.id, doc.data()));
+    const priorities = snapshot.docs.map((doc) => this.mapToEntity(doc.id, doc.data()));
+    // Ordenação em memória para evitar necessidade de índice composto durante desenvolvimento
+    return priorities.sort((a, b) => a.displayOrder - b.displayOrder);
   }
 
   async create(priority: Prioridade): Promise<Prioridade> {
