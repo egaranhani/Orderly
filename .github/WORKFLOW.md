@@ -141,10 +141,14 @@ Antes de criar um PR, verifique:
 - [ ] Não há dependências circulares
 - [ ] Validações implementadas nos DTOs
 - [ ] Tratamento de erros adequado
+- [ ] **Testes automatizados de aceitação criados** (conforme [PLANEJAMENTO-FASES.md](../../PLANEJAMENTO-FASES.md))
+- [ ] **Todos os testes passando** (100% de sucesso)
 - [ ] Código testado localmente
 - [ ] Documentação atualizada (se necessário)
 - [ ] Branch atualizada com `main`
 - [ ] Commits organizados e com mensagens claras
+
+> 📋 **Nota:** Para fases 2 em diante, a criação de testes automatizados de aceitação é obrigatória. Consulte [PLANEJAMENTO-FASES.md](../../PLANEJAMENTO-FASES.md) para detalhes.
 
 ## 🚫 Regras Importantes
 
@@ -199,3 +203,4 @@ git branch -d feature/nome-deletado
 
 - [Atlassian Feature Branch Workflow](https://www.atlassian.com/git/tutorials/comparing-workflows/feature-branch-workflow)
 - [Conventional Commits](https://www.conventionalcommits.org/)
+- [Planejamento de Fases](../../PLANEJAMENTO-FASES.md) - Roadmap de implementação com testes automatizados

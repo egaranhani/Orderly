@@ -962,6 +962,10 @@ Mensagem do usuário: {message}
 
 ## 10. Ordem de Implementação Sugerida
 
+> 📋 **Planejamento Detalhado:** Para o planejamento completo das fases de implementação, incluindo testes automatizados de aceitação e workflow de desenvolvimento, consulte o documento [PLANEJAMENTO-FASES.md](./PLANEJAMENTO-FASES.md).
+
+### Visão Geral da Ordem de Implementação
+
 1. **Dependências**: Instalar `@toon-format/toon` no backend
 2. **Domain**: Entidades `Prioridade` e `Tarefa`
 3. **Domain**: Interfaces de repositórios
@@ -973,6 +977,8 @@ Mensagem do usuário: {message}
 9. **Infrastructure**: Integração com IA para Inbox (usando TOON)
 10. **Application**: Extensão do ChatUseCase para prioridades/tarefas (usando TOON)
 11. **Presentation**: Endpoints de relatórios
+
+**Nota:** Esta lista representa a ordem técnica sugerida. O planejamento detalhado por fases, incluindo testes automatizados de aceitação, está documentado em [PLANEJAMENTO-FASES.md](./PLANEJAMENTO-FASES.md).
 
 ---
 
