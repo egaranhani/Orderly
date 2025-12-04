@@ -1,4 +1,4 @@
-import { NestFactory } from '@nestjs/core';
+import { Test, TestingModule } from '@nestjs/testing';
 import { AppModule } from '../../src/presentation/app.module';
 import { ProcessInboxUseCase } from '../../src/application/use-cases/inbox/process-inbox.use-case';
 import { GetInboxItemsUseCase } from '../../src/application/use-cases/inbox/get-inbox-items.use-case';
@@ -8,19 +8,35 @@ import { DiscardSuggestionUseCase } from '../../src/application/use-cases/inbox/
 import { DeleteInboxItemUseCase } from '../../src/application/use-cases/inbox/delete-inbox-item.use-case';
 import { InboxItemStatus } from '../../src/domain/entities/inbox-item.entity';
 import { BadRequestException, NotFoundException, ForbiddenException } from '@nestjs/common';
+import { MockAiService } from '../mocks/mock-ai.service';
 
 async function testInboxUseCases() {
   console.log('🧪 Iniciando testes de aceitação - Use Cases de Inbox...\n');
 
   try {
-    const app = await NestFactory.createApplicationContext(AppModule);
+    const useMockAi = process.env.USE_MOCK_AI !== 'false';
     
-    const processUseCase = app.get<ProcessInboxUseCase>(ProcessInboxUseCase);
-    const getInboxItemsUseCase = app.get<GetInboxItemsUseCase>(GetInboxItemsUseCase);
-    const getInboxItemUseCase = app.get<GetInboxItemUseCase>(GetInboxItemUseCase);
-    const acceptSuggestionUseCase = app.get<AcceptSuggestionUseCase>(AcceptSuggestionUseCase);
-    const discardSuggestionUseCase = app.get<DiscardSuggestionUseCase>(DiscardSuggestionUseCase);
-    const deleteInboxItemUseCase = app.get<DeleteInboxItemUseCase>(DeleteInboxItemUseCase);
+    let moduleBuilder = Test.createTestingModule({
+      imports: [AppModule],
+    });
+
+    if (useMockAi) {
+      moduleBuilder = moduleBuilder
+        .overrideProvider('IAiService')
+        .useClass(MockAiService);
+      console.log('📌 Usando MockAiService para testes');
+    } else {
+      console.log('📌 Usando VertexAiService real (requer credenciais Google Cloud)');
+    }
+
+    const module: TestingModule = await moduleBuilder.compile();
+    
+    const processUseCase = module.get<ProcessInboxUseCase>(ProcessInboxUseCase);
+    const getInboxItemsUseCase = module.get<GetInboxItemsUseCase>(GetInboxItemsUseCase);
+    const getInboxItemUseCase = module.get<GetInboxItemUseCase>(GetInboxItemUseCase);
+    const acceptSuggestionUseCase = module.get<AcceptSuggestionUseCase>(AcceptSuggestionUseCase);
+    const discardSuggestionUseCase = module.get<DiscardSuggestionUseCase>(DiscardSuggestionUseCase);
+    const deleteInboxItemUseCase = module.get<DeleteInboxItemUseCase>(DeleteInboxItemUseCase);
 
     const testUserId = 'test-user-' + Date.now();
     const otherUserId = 'other-user-' + Date.now();
@@ -29,10 +45,20 @@ async function testInboxUseCases() {
     console.log('📝 Test 1: Processar Inbox Item');
     const processResult = await processUseCase.execute(testUserId, {
       meetingTitle: 'Reunião de Teste',
-      meetingContent: 'Esta é uma reunião de teste com conteúdo suficiente para passar na validação.',
+      meetingContent: 'Esta é uma reunião de teste com conteúdo suficiente para passar na validação. Na reunião foi decidido fechar a proposta comercial e planejar férias para julho.',
     });
     console.log('✅ Inbox Item processado:', processResult.inboxItemId);
+    console.log('   - Status: PROCESSED');
     console.log('   - Sugestões:', processResult.suggestions.length);
+    if (processResult.suggestions.length > 0) {
+      console.log('   - Primeira sugestão:', processResult.suggestions[0].actionSummary);
+      console.log('   - Prioridade sugerida:', processResult.suggestions[0].suggestedPriority.title);
+      console.log('   - Quadrante:', processResult.suggestions[0].suggestedPriority.quadrant);
+      console.log('   - Tarefa sugerida:', processResult.suggestions[0].suggestedTask.title);
+      console.log('   - Classificação:', processResult.suggestions[0].suggestedTask.classification);
+    } else {
+      console.log('   ⚠️  Nenhuma sugestão retornada (IA pode não estar configurada ou não encontrou ações)');
+    }
 
     // Test 2: Validação - Conteúdo muito curto
     console.log('\n📝 Test 2: Validação - Conteúdo muito curto');
@@ -91,7 +117,7 @@ async function testInboxUseCases() {
       status: InboxItemStatus.PROCESSED,
     });
     console.log('✅ Inbox Items encontrados:', items.length);
-    console.log('   - Todos processados:', items.every(i => i.status === InboxItemStatus.PROCESSED));
+    console.log('   - Todos processados:', items.every((i: { status: InboxItemStatus }) => i.status === InboxItemStatus.PROCESSED));
 
     // Test 7: Processar mais um item
     console.log('\n📝 Test 7: Processar mais um item');
@@ -123,6 +149,28 @@ async function testInboxUseCases() {
       }
     }
 
+    // Test 11: Aceitar Sugestão (requer sugestões reais)
+    if (processResult.suggestions.length > 0) {
+      console.log('\n📝 Test 11: Aceitar Sugestão');
+      const suggestionId = processResult.suggestions[0].id;
+      const acceptResult = await acceptSuggestionUseCase.execute(testUserId, processResult.inboxItemId, {
+        suggestionId,
+      });
+      console.log('✅ Sugestão aceita');
+      console.log('   - Prioridade criada:', acceptResult.priority.id);
+      console.log('   - Tarefa criada:', acceptResult.task.id);
+    }
+
+    // Test 12: Descartar Sugestão
+    if (processResult.suggestions.length > 1) {
+      console.log('\n📝 Test 12: Descartar Sugestão');
+      const suggestionId = processResult.suggestions[1].id;
+      const discardResult = await discardSuggestionUseCase.execute(testUserId, processResult.inboxItemId, {
+        suggestionId,
+      });
+      console.log('✅ Sugestão descartada:', discardResult.success);
+    }
+
     // Limpeza
     console.log('\n🧹 Limpando dados de teste...');
     try {
@@ -133,8 +181,8 @@ async function testInboxUseCases() {
     }
 
     console.log('\n✅ Todos os testes de aceitação de Inbox passaram!');
-    console.log('⚠️  Nota: Testes de AcceptSuggestion e DiscardSuggestion requerem sugestões reais da IA (será implementado na Fase 3)');
-    await app.close();
+    console.log('✅ Testes usam mock do serviço de IA (MockAiService). Para testes com IA real, remova o override do provider.');
+    await module.close();
   } catch (error) {
     console.error('❌ Erro nos testes:', error);
     throw error;

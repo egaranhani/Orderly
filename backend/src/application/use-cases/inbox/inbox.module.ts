@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { FirestoreModule } from '@infrastructure/persistence/firestore/firestore.module';
+import { AiInfrastructureModule } from '@infrastructure/ai/ai.module';
 import { ProcessInboxUseCase } from './process-inbox.use-case';
 import { GetInboxItemsUseCase } from './get-inbox-items.use-case';
 import { GetInboxItemUseCase } from './get-inbox-item.use-case';
@@ -8,7 +9,7 @@ import { DiscardSuggestionUseCase } from './discard-suggestion.use-case';
 import { DeleteInboxItemUseCase } from './delete-inbox-item.use-case';
 
 @Module({
-  imports: [FirestoreModule],
+  imports: [FirestoreModule, AiInfrastructureModule],
   providers: [
     ProcessInboxUseCase,
     GetInboxItemsUseCase,
