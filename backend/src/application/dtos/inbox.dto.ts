@@ -1,4 +1,14 @@
 import {
+  IsString,
+  IsOptional,
+  IsEnum,
+  IsArray,
+  MinLength,
+  MaxLength,
+  IsDateString,
+  ArrayMaxSize,
+} from 'class-validator';
+import {
   EisenhowerQuadrant,
 } from '@domain/entities/priority.entity';
 import {
@@ -9,12 +19,21 @@ import {
 } from '@domain/entities/inbox-item.entity';
 
 export class ProcessInboxDto {
+  @IsOptional()
+  @IsString()
+  @MaxLength(200)
   meetingTitle?: string;
+
+  @IsString()
+  @MinLength(10)
   meetingContent: string;
 }
 
 export class AcceptSuggestionDto {
+  @IsString()
   suggestionId: string;
+
+  @IsOptional()
   adjustments?: {
     priority?: {
       title?: string;
@@ -28,10 +47,14 @@ export class AcceptSuggestionDto {
       responsible?: string;
     };
   };
+
+  @IsOptional()
+  @IsString()
   linkToExistingPriorityId?: string;
 }
 
 export class DiscardSuggestionDto {
+  @IsString()
   suggestionId: string;
 }
 
