@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { DragDropContext, Droppable, Draggable, DropResult } from 'react-beautiful-dnd';
+import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
 import { Card, CardContent } from './card';
 import { cn } from '@/lib/utils';
 

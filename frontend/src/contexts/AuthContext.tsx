@@ -26,6 +26,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     if (storedToken && storedUser) {
       setToken(storedToken);
       setUser(JSON.parse(storedUser));
+    } else {
+      // TEMPORÁRIO: Mock de autenticação para desenvolvimento
+      const mockToken = 'mock-token-for-development';
+      const mockUser: User = {
+        id: 'mock-user-id',
+        email: 'dev@orderlyai.com',
+        name: 'Dev User',
+        workspaceDomain: 'dev.orderlyai.com',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+      setToken(mockToken);
+      setUser(mockUser);
+      localStorage.setItem('token', mockToken);
+      localStorage.setItem('user', JSON.stringify(mockUser));
     }
 
     setIsLoading(false);

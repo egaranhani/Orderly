@@ -21,8 +21,8 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
   const isActive = (path: string) => location.pathname === path;
 
   return (
-    <div className="min-h-screen bg-background">
-      <header className="border-b">
+    <div className="h-screen bg-background flex flex-col overflow-hidden">
+      <header className="border-b flex-shrink-0">
         <div className="container mx-auto px-4">
           <div className="flex h-16 items-center justify-between">
             <div className="flex items-center gap-8">
@@ -58,7 +58,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
           </div>
         </div>
       </header>
-      <main className="container mx-auto px-4 py-8">{children}</main>
+      <main className="container mx-auto px-4 py-4 flex-1 min-h-0 overflow-hidden">{children}</main>
     </div>
   );
 };
