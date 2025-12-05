@@ -12,10 +12,10 @@ export const priorityService = {
   getAll: async (token: string | null, quadrant?: EisenhowerQuadrant) => {
     const client = createApiClient(token);
     const params = quadrant ? { quadrant } : {};
-    const response = await client.get<PriorityResponseDto[]>('/priorities', {
+    const response = await client.get<{ priorities: PriorityResponseDto[] }>('/priorities', {
       params,
     });
-    return response.data;
+    return response.data.priorities;
   },
 
   getById: async (token: string | null, id: string) => {
@@ -63,7 +63,7 @@ export const priorityService = {
     data: ReorderPrioritiesDto
   ) => {
     const client = createApiClient(token);
-    const response = await client.post<PriorityResponseDto[]>(
+    const response = await client.post<{ success: boolean }>(
       `/priorities/${quadrant}/reorder`,
       data
     );
@@ -85,7 +85,7 @@ export const priorityService = {
 
   getTasks: async (token: string | null, priorityId: string) => {
     const client = createApiClient(token);
-    const response = await client.get(`/priorities/${priorityId}/tasks`);
-    return response.data;
+    const response = await client.get<{ tasks: any[] }>(`/priorities/${priorityId}/tasks`);
+    return response.data.tasks;
   },
 };
