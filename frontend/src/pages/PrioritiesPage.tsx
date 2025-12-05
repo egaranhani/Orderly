@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useNavigate } from 'react-router-dom';
 import { DragDropContext, Droppable, Draggable, DropResult } from 'react-beautiful-dnd';
 import { Layout } from '@/components/Layout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -47,6 +48,7 @@ const quadrantLabels = {
 export const PrioritiesPage: React.FC = () => {
   const { token } = useAuth();
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedQuadrant, setSelectedQuadrant] = useState<EisenhowerQuadrant | null>(null);
   const [editingPriority, setEditingPriority] = useState<PriorityResponseDto | null>(null);
@@ -341,7 +343,10 @@ export const PrioritiesPage: React.FC = () => {
                                 >
                                   <CardContent className="p-4">
                                     <div className="flex items-start justify-between">
-                                      <div className="flex-1">
+                                      <div
+                                        className="flex-1 cursor-pointer"
+                                        onClick={() => navigate(`/priorities/${priority.id}/tasks`)}
+                                      >
                                         <h3 className="font-medium mb-1">
                                           {priority.title}
                                         </h3>
