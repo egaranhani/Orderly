@@ -4,6 +4,11 @@ import { ProtectedRoute } from './components/ProtectedRoute';
 import { LoginPage } from './pages/LoginPage';
 import { ChatPage } from './pages/ChatPage';
 import { AuthCallbackPage } from './pages/AuthCallbackPage';
+import { DesignSystemPage } from './pages/DesignSystemPage';
+import { PrioritiesPage } from './pages/PrioritiesPage';
+import { TasksPage } from './pages/TasksPage';
+import { InboxPage } from './pages/InboxPage';
+import { ReportsPage } from './pages/ReportsPage';
 
 function App() {
   return (
@@ -12,6 +17,39 @@ function App() {
         <Routes>
           <Route path="/login" element={<LoginPage />} />
           <Route path="/auth/callback" element={<AuthCallbackPage />} />
+          <Route path="/design-system" element={<DesignSystemPage />} />
+          <Route
+            path="/priorities"
+            element={
+              <ProtectedRoute>
+                <PrioritiesPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/priorities/:id/tasks"
+            element={
+              <ProtectedRoute>
+                <TasksPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/inbox"
+            element={
+              <ProtectedRoute>
+                <InboxPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/reports"
+            element={
+              <ProtectedRoute>
+                <ReportsPage />
+              </ProtectedRoute>
+            }
+          />
           <Route
             path="/chat"
             element={
@@ -20,7 +58,7 @@ function App() {
               </ProtectedRoute>
             }
           />
-          <Route path="/" element={<Navigate to="/chat" replace />} />
+          <Route path="/" element={<Navigate to="/design-system" replace />} />
         </Routes>
       </AuthProvider>
     </BrowserRouter>
