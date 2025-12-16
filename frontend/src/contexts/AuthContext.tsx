@@ -15,18 +15,23 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
-  const [user, setUser] = useState<User | null>(null);
-  const [token, setToken] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const storedToken = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+  const storedUser = typeof window !== 'undefined' ? localStorage.getItem('user') : null;
+  
+  const [user, setUser] = useState<User | null>(
+    storedUser ? JSON.parse(storedUser) : null
+  );
+  const [token, setToken] = useState<string | null>(storedToken);
+  const [isLoading, setIsLoading] = useState(!storedToken || !storedUser);
 
   useEffect(() => {
     const initializeAuth = async () => {
-      const storedToken = localStorage.getItem('token');
-      const storedUser = localStorage.getItem('user');
+      const currentToken = localStorage.getItem('token');
+      const currentUser = localStorage.getItem('user');
 
-      if (storedToken && storedUser) {
-        setToken(storedToken);
-        setUser(JSON.parse(storedUser));
+      if (currentToken && currentUser) {
+        setToken(currentToken);
+        setUser(JSON.parse(currentUser));
         setIsLoading(false);
         return;
       }

@@ -22,8 +22,12 @@ import {
 } from '@/types/priority.types';
 import {
   CreateTaskDto,
+  UpdateTaskDto,
+  MoveTaskDto,
   TaskClassification,
+  TaskStatus,
   TaskOrigin,
+  TaskResponseDto,
 } from '@/types/task.types';
 import {
   Dialog,
@@ -76,6 +80,10 @@ export const PrioritiesPage: React.FC = () => {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [tasksDialogOpen, setTasksDialogOpen] = useState(false);
   const [createTaskDialogOpen, setCreateTaskDialogOpen] = useState(false);
+  const [editTaskDialogOpen, setEditTaskDialogOpen] = useState(false);
+  const [deleteTaskDialogOpen, setDeleteTaskDialogOpen] = useState(false);
+  const [moveTaskDialogOpen, setMoveTaskDialogOpen] = useState(false);
+  const [selectedTask, setSelectedTask] = useState<any>(null);
   const { token, isLoading: authLoading } = useAuth();
   const queryClient = useQueryClient();
   const [selectedPriority, setSelectedPriority] = useState<PriorityResponseDto | null>(null);
@@ -103,6 +111,13 @@ export const PrioritiesPage: React.FC = () => {
     title: '',
     description: '',
     classification: TaskClassification.DO,
+    idealDate: '',
+    responsible: '',
+  });
+  const [moveTaskFormData, setMoveTaskFormData] = useState({
+    classification: TaskClassification.DO,
+    idealDate: '',
+    responsible: '',
   });
   const { data: priorities = [], isLoading, error } = useQuery({
     queryKey: ['priorities'],
@@ -162,11 +177,81 @@ export const PrioritiesPage: React.FC = () => {
       queryClient.invalidateQueries({ queryKey: ['tasks', selectedPriority?.id] });
       queryClient.invalidateQueries({ queryKey: ['priorities'] });
       setCreateTaskDialogOpen(false);
-      setTaskFormData({ title: '', description: '', classification: TaskClassification.DO });
+      setTaskFormData({ title: '', description: '', classification: TaskClassification.DO, idealDate: '', responsible: '' });
     },
     onError: (error: any) => {
       console.error('Erro ao criar tarefa:', error);
       alert('Erro ao criar tarefa. Verifique o console para mais detalhes.');
+    },
+  });
+
+  const updateTaskMutation = useMutation({
+    mutationFn: ({ id, data }: { id: string; data: UpdateTaskDto }) =>
+      taskService.update(token!, id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['tasks', selectedPriority?.id] });
+      queryClient.invalidateQueries({ queryKey: ['priorities'] });
+      setEditTaskDialogOpen(false);
+      setSelectedTask(null);
+      setTaskFormData({ title: '', description: '', classification: TaskClassification.DO, idealDate: '', responsible: '' });
+    },
+    onError: (error: any) => {
+      console.error('Erro ao atualizar tarefa:', error);
+      alert('Erro ao atualizar tarefa. Verifique o console para mais detalhes.');
+    },
+  });
+
+  const deleteTaskMutation = useMutation({
+    mutationFn: (id: string) => taskService.delete(token!, id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['tasks', selectedPriority?.id] });
+      queryClient.invalidateQueries({ queryKey: ['priorities'] });
+      setDeleteTaskDialogOpen(false);
+      setSelectedTask(null);
+    },
+    onError: (error: any) => {
+      console.error('Erro ao deletar tarefa:', error);
+      alert('Erro ao deletar tarefa. Verifique o console para mais detalhes.');
+    },
+  });
+
+  const completeTaskMutation = useMutation({
+    mutationFn: (id: string) => taskService.complete(token!, id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['tasks', selectedPriority?.id] });
+      queryClient.invalidateQueries({ queryKey: ['priorities'] });
+    },
+    onError: (error: any) => {
+      console.error('Erro ao completar tarefa:', error);
+      alert('Erro ao completar tarefa. Verifique o console para mais detalhes.');
+    },
+  });
+
+  const cancelTaskMutation = useMutation({
+    mutationFn: (id: string) => taskService.cancel(token!, id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['tasks', selectedPriority?.id] });
+      queryClient.invalidateQueries({ queryKey: ['priorities'] });
+    },
+    onError: (error: any) => {
+      console.error('Erro ao cancelar tarefa:', error);
+      alert('Erro ao cancelar tarefa. Verifique o console para mais detalhes.');
+    },
+  });
+
+  const moveTaskMutation = useMutation({
+    mutationFn: ({ id, data }: { id: string; data: MoveTaskDto }) =>
+      taskService.move(token!, id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['tasks', selectedPriority?.id] });
+      queryClient.invalidateQueries({ queryKey: ['priorities'] });
+      setMoveTaskDialogOpen(false);
+      setSelectedTask(null);
+      setMoveTaskFormData({ classification: TaskClassification.DO, idealDate: '', responsible: '' });
+    },
+    onError: (error: any) => {
+      console.error('Erro ao mover tarefa:', error);
+      alert('Erro ao mover tarefa. Verifique o console para mais detalhes.');
     },
   });
 
@@ -324,7 +409,73 @@ export const PrioritiesPage: React.FC = () => {
 
   const handleCreateTask = (priority: PriorityResponseDto) => {
     setSelectedPriority(priority);
+    setTaskFormData({ title: '', description: '', classification: TaskClassification.DO, idealDate: '', responsible: '' });
     setCreateTaskDialogOpen(true);
+  };
+
+  const handleEditTask = (task: TaskResponseDto) => {
+    setSelectedTask(task);
+    setTaskFormData({
+      title: task.title,
+      description: task.description || '',
+      classification: task.classification,
+      idealDate: task.idealDate || '',
+      responsible: task.responsible || '',
+    });
+    setEditTaskDialogOpen(true);
+  };
+
+  const handleDeleteTask = (task: TaskResponseDto) => {
+    setSelectedTask(task);
+    setDeleteTaskDialogOpen(true);
+  };
+
+  const handleMoveTask = (task: TaskResponseDto) => {
+    setSelectedTask(task);
+    setMoveTaskFormData({
+      classification: task.classification,
+      idealDate: task.idealDate || '',
+      responsible: task.responsible || '',
+    });
+    setMoveTaskDialogOpen(true);
+  };
+
+  const handleCompleteTask = (taskId: string) => {
+    completeTaskMutation.mutate(taskId);
+  };
+
+  const handleCancelTask = (taskId: string) => {
+    cancelTaskMutation.mutate(taskId);
+  };
+
+  const getTaskStatusLabel = (status: TaskStatus) => {
+    const labels: Record<TaskStatus, string> = {
+      [TaskStatus.OPEN]: 'Aberta',
+      [TaskStatus.IN_PROGRESS]: 'Em Progresso',
+      [TaskStatus.COMPLETED]: 'Concluída',
+      [TaskStatus.CANCELLED]: 'Cancelada',
+    };
+    return labels[status] || status;
+  };
+
+  const getTaskStatusColor = (status: TaskStatus) => {
+    const colors: Record<TaskStatus, string> = {
+      [TaskStatus.OPEN]: 'bg-blue-100 text-blue-800',
+      [TaskStatus.IN_PROGRESS]: 'bg-yellow-100 text-yellow-800',
+      [TaskStatus.COMPLETED]: 'bg-green-100 text-green-800',
+      [TaskStatus.CANCELLED]: 'bg-gray-100 text-gray-800',
+    };
+    return colors[status] || 'bg-gray-100 text-gray-800';
+  };
+
+  const getClassificationLabel = (classification: TaskClassification) => {
+    const labels: Record<TaskClassification, string> = {
+      [TaskClassification.DO]: 'Fazer',
+      [TaskClassification.SCHEDULE]: 'Agendar',
+      [TaskClassification.DELEGATE]: 'Delegar',
+      [TaskClassification.ELIMINATE]: 'Eliminar',
+    };
+    return labels[classification] || classification;
   };
 
   const handleContextMenu = (e: React.MouseEvent, priority: PriorityResponseDto) => {
@@ -680,19 +831,92 @@ export const PrioritiesPage: React.FC = () => {
                   </p>
                 ) : (
                   <div className="space-y-2">
-                    {tasks.map((task: any) => (
+                    {tasks.map((task: TaskResponseDto) => (
                       <Card key={task.id}>
-                        <CardContent className="p-3 flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            <input
-                              type="checkbox"
-                              checked={task.completed}
-                              readOnly
-                              className="rounded"
-                            />
-                            <span className={task.completed ? 'line-through text-muted-foreground' : ''}>
-                              {task.title}
+                        <CardContent className="p-4">
+                          <div className="flex items-start justify-between">
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2 mb-2">
+                                <input
+                                  type="checkbox"
+                                  checked={task.status === TaskStatus.COMPLETED}
+                                  onChange={(e) => {
+                                    if (e.target.checked && task.status !== TaskStatus.COMPLETED) {
+                                      handleCompleteTask(task.id);
+                                    }
+                                  }}
+                                  disabled={task.status === TaskStatus.COMPLETED || completeTaskMutation.isPending}
+                                  className="w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary cursor-pointer disabled:opacity-50"
+                                  title={task.status === TaskStatus.COMPLETED ? 'Tarefa já está completa' : 'Marcar como completa'}
+                                />
+                                <h4 className={`font-medium ${task.status === TaskStatus.COMPLETED ? 'line-through text-muted-foreground' : ''}`}>
+                                  {task.title}
+                                </h4>
+                                <span className={`text-xs px-2 py-1 rounded ${getTaskStatusColor(task.status)}`}>
+                                  {getTaskStatusLabel(task.status)}
+                                </span>
+                                <span className="text-xs px-2 py-1 rounded bg-secondary text-secondary-foreground">
+                                  {getClassificationLabel(task.classification)}
                             </span>
+                              </div>
+                              {task.description && (
+                                <p className="text-sm text-muted-foreground mb-2">{task.description}</p>
+                              )}
+                              <div className="flex gap-4 text-xs text-muted-foreground">
+                                {task.idealDate && (
+                                  <span>Data ideal: {new Date(task.idealDate).toLocaleDateString('pt-BR')}</span>
+                                )}
+                                {task.responsible && (
+                                  <span>Responsável: {task.responsible}</span>
+                                )}
+                              </div>
+                            </div>
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="icon">
+                                  <svg
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    width="16"
+                                    height="16"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    strokeWidth="2"
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                  >
+                                    <circle cx="12" cy="12" r="1" />
+                                    <circle cx="19" cy="12" r="1" />
+                                    <circle cx="5" cy="12" r="1" />
+                                  </svg>
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuItem onClick={() => handleEditTask(task)}>
+                                  Editar
+                                </DropdownMenuItem>
+                                {task.status === TaskStatus.OPEN || task.status === TaskStatus.IN_PROGRESS ? (
+                                  <DropdownMenuItem onClick={() => handleCompleteTask(task.id)}>
+                                    Completar
+                                  </DropdownMenuItem>
+                                ) : null}
+                                {task.status === TaskStatus.IN_PROGRESS ? (
+                                  <DropdownMenuItem onClick={() => handleCancelTask(task.id)}>
+                                    Cancelar
+                                  </DropdownMenuItem>
+                                ) : null}
+                                <DropdownMenuItem onClick={() => handleMoveTask(task)}>
+                                  Mover
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem
+                                  onClick={() => handleDeleteTask(task)}
+                                  className="text-destructive"
+                                >
+                                  Deletar
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
                           </div>
                         </CardContent>
                       </Card>
@@ -763,11 +987,31 @@ export const PrioritiesPage: React.FC = () => {
                     </SelectContent>
                   </Select>
                 </div>
+                {taskFormData.classification === TaskClassification.SCHEDULE && (
+                  <div>
+                    <label className="text-sm font-medium mb-2 block">Data Ideal *</label>
+                    <Input
+                      type="date"
+                      value={taskFormData.idealDate}
+                      onChange={(e) => setTaskFormData({ ...taskFormData, idealDate: e.target.value })}
+                    />
+                  </div>
+                )}
+                {taskFormData.classification === TaskClassification.DELEGATE && (
+                  <div>
+                    <label className="text-sm font-medium mb-2 block">Responsável *</label>
+                    <Input
+                      placeholder="Nome do responsável..."
+                      value={taskFormData.responsible}
+                      onChange={(e) => setTaskFormData({ ...taskFormData, responsible: e.target.value })}
+                    />
+                  </div>
+                )}
               </div>
               <DialogFooter>
                 <Button variant="outline" onClick={() => {
                   setCreateTaskDialogOpen(false);
-                  setTaskFormData({ title: '', description: '', classification: TaskClassification.DO });
+                  setTaskFormData({ title: '', description: '', classification: TaskClassification.DO, idealDate: '', responsible: '' });
                 }}>
                   Cancelar
                 </Button>
@@ -777,16 +1021,246 @@ export const PrioritiesPage: React.FC = () => {
                       alert('Por favor, preencha o título da tarefa');
                       return;
                     }
+                    if (taskFormData.classification === TaskClassification.SCHEDULE && !taskFormData.idealDate) {
+                      alert('Por favor, preencha a data ideal para tarefas agendadas');
+                      return;
+                    }
+                    if (taskFormData.classification === TaskClassification.DELEGATE && !taskFormData.responsible) {
+                      alert('Por favor, preencha o responsável para tarefas delegadas');
+                      return;
+                    }
                     createTaskMutation.mutate({
                       title: taskFormData.title,
                       description: taskFormData.description || undefined,
                       classification: taskFormData.classification,
+                      idealDate: taskFormData.idealDate || undefined,
+                      responsible: taskFormData.responsible || undefined,
                       origin: TaskOrigin.MANUAL,
                     });
                   }}
                   disabled={createTaskMutation.isPending}
                 >
                   {createTaskMutation.isPending ? 'Criando...' : 'Criar Tarefa'}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+
+          <Dialog open={editTaskDialogOpen} onOpenChange={setEditTaskDialogOpen}>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Editar Tarefa</DialogTitle>
+                <DialogDescription>
+                  Editar tarefa da prioridade "{selectedPriority?.title}"
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4 py-4">
+                <div>
+                  <label className="text-sm font-medium mb-2 block">Título da Tarefa *</label>
+                  <Input
+                    placeholder="Digite o título da tarefa..."
+                    value={taskFormData.title}
+                    onChange={(e) => setTaskFormData({ ...taskFormData, title: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium mb-2 block">
+                    Descrição (opcional)
+                  </label>
+                  <textarea
+                    className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                    placeholder="Descrição da tarefa..."
+                    value={taskFormData.description}
+                    onChange={(e) => setTaskFormData({ ...taskFormData, description: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium mb-2 block">Classificação *</label>
+                  <Select
+                    value={taskFormData.classification}
+                    onValueChange={(value) => setTaskFormData({ ...taskFormData, classification: value as TaskClassification })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value={TaskClassification.DO}>Fazer</SelectItem>
+                      <SelectItem value={TaskClassification.SCHEDULE}>Agendar</SelectItem>
+                      <SelectItem value={TaskClassification.DELEGATE}>Delegar</SelectItem>
+                      <SelectItem value={TaskClassification.ELIMINATE}>Eliminar</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                {taskFormData.classification === TaskClassification.SCHEDULE && (
+                  <div>
+                    <label className="text-sm font-medium mb-2 block">Data Ideal *</label>
+                    <Input
+                      type="date"
+                      value={taskFormData.idealDate}
+                      onChange={(e) => setTaskFormData({ ...taskFormData, idealDate: e.target.value })}
+                    />
+                  </div>
+                )}
+                {taskFormData.classification === TaskClassification.DELEGATE && (
+                  <div>
+                    <label className="text-sm font-medium mb-2 block">Responsável *</label>
+                    <Input
+                      placeholder="Nome do responsável..."
+                      value={taskFormData.responsible}
+                      onChange={(e) => setTaskFormData({ ...taskFormData, responsible: e.target.value })}
+                    />
+                  </div>
+                )}
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => {
+                  setEditTaskDialogOpen(false);
+                  setSelectedTask(null);
+                  setTaskFormData({ title: '', description: '', classification: TaskClassification.DO, idealDate: '', responsible: '' });
+                }}>
+                  Cancelar
+                </Button>
+                <Button
+                  onClick={() => {
+                    if (!taskFormData.title.trim()) {
+                      alert('Por favor, preencha o título da tarefa');
+                      return;
+                    }
+                    if (taskFormData.classification === TaskClassification.SCHEDULE && !taskFormData.idealDate) {
+                      alert('Por favor, preencha a data ideal para tarefas agendadas');
+                      return;
+                    }
+                    if (taskFormData.classification === TaskClassification.DELEGATE && !taskFormData.responsible) {
+                      alert('Por favor, preencha o responsável para tarefas delegadas');
+                      return;
+                    }
+                    if (!selectedTask) return;
+                    updateTaskMutation.mutate({
+                      id: selectedTask.id,
+                      data: {
+                        title: taskFormData.title,
+                        description: taskFormData.description || undefined,
+                        classification: taskFormData.classification,
+                        idealDate: taskFormData.idealDate || undefined,
+                        responsible: taskFormData.responsible || undefined,
+                      },
+                    });
+                  }}
+                  disabled={updateTaskMutation.isPending}
+                >
+                  {updateTaskMutation.isPending ? 'Salvando...' : 'Salvar'}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+
+          <Dialog open={deleteTaskDialogOpen} onOpenChange={setDeleteTaskDialogOpen}>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Confirmar Exclusão</DialogTitle>
+                <DialogDescription>
+                  Tem certeza que deseja excluir a tarefa "{selectedTask?.title}"? Esta ação não pode ser desfeita.
+                </DialogDescription>
+              </DialogHeader>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => {
+                  setDeleteTaskDialogOpen(false);
+                  setSelectedTask(null);
+                }}>
+                  Cancelar
+                </Button>
+                <Button
+                  variant="destructive"
+                  onClick={() => {
+                    if (!selectedTask) return;
+                    deleteTaskMutation.mutate(selectedTask.id);
+                  }}
+                  disabled={deleteTaskMutation.isPending}
+                >
+                  {deleteTaskMutation.isPending ? 'Excluindo...' : 'Excluir'}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+
+          <Dialog open={moveTaskDialogOpen} onOpenChange={setMoveTaskDialogOpen}>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Mover Tarefa</DialogTitle>
+                <DialogDescription>
+                  Mover tarefa "{selectedTask?.title}" para outra classificação
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4 py-4">
+                <div>
+                  <label className="text-sm font-medium mb-2 block">Nova Classificação *</label>
+                  <Select
+                    value={moveTaskFormData.classification}
+                    onValueChange={(value) => setMoveTaskFormData({ ...moveTaskFormData, classification: value as TaskClassification })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value={TaskClassification.DO}>Fazer</SelectItem>
+                      <SelectItem value={TaskClassification.SCHEDULE}>Agendar</SelectItem>
+                      <SelectItem value={TaskClassification.DELEGATE}>Delegar</SelectItem>
+                      <SelectItem value={TaskClassification.ELIMINATE}>Eliminar</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                {moveTaskFormData.classification === TaskClassification.SCHEDULE && (
+                  <div>
+                    <label className="text-sm font-medium mb-2 block">Data Ideal *</label>
+                    <Input
+                      type="date"
+                      value={moveTaskFormData.idealDate}
+                      onChange={(e) => setMoveTaskFormData({ ...moveTaskFormData, idealDate: e.target.value })}
+                    />
+                  </div>
+                )}
+                {moveTaskFormData.classification === TaskClassification.DELEGATE && (
+                  <div>
+                    <label className="text-sm font-medium mb-2 block">Responsável *</label>
+                    <Input
+                      placeholder="Nome do responsável..."
+                      value={moveTaskFormData.responsible}
+                      onChange={(e) => setMoveTaskFormData({ ...moveTaskFormData, responsible: e.target.value })}
+                    />
+                  </div>
+                )}
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => {
+                  setMoveTaskDialogOpen(false);
+                  setSelectedTask(null);
+                  setMoveTaskFormData({ classification: TaskClassification.DO, idealDate: '', responsible: '' });
+                }}>
+                  Cancelar
+                </Button>
+                <Button
+                  onClick={() => {
+                    if (moveTaskFormData.classification === TaskClassification.SCHEDULE && !moveTaskFormData.idealDate) {
+                      alert('Por favor, preencha a data ideal para tarefas agendadas');
+                      return;
+                    }
+                    if (moveTaskFormData.classification === TaskClassification.DELEGATE && !moveTaskFormData.responsible) {
+                      alert('Por favor, preencha o responsável para tarefas delegadas');
+                      return;
+                    }
+                    if (!selectedTask) return;
+                    moveTaskMutation.mutate({
+                      id: selectedTask.id,
+                      data: {
+                        classification: moveTaskFormData.classification,
+                        idealDate: moveTaskFormData.idealDate || undefined,
+                        responsible: moveTaskFormData.responsible || undefined,
+                      },
+                    });
+                  }}
+                  disabled={moveTaskMutation.isPending}
+                >
+                  {moveTaskMutation.isPending ? 'Movendo...' : 'Mover'}
                 </Button>
               </DialogFooter>
             </DialogContent>
