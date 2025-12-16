@@ -20,30 +20,41 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const storedToken = localStorage.getItem('token');
-    const storedUser = localStorage.getItem('user');
+    const initializeAuth = async () => {
+      const storedToken = localStorage.getItem('token');
+      const storedUser = localStorage.getItem('user');
 
-    if (storedToken && storedUser) {
-      setToken(storedToken);
-      setUser(JSON.parse(storedUser));
-    } else {
-      // TEMPORÁRIO: Mock de autenticação para desenvolvimento
-      const mockToken = 'mock-token-for-development';
-      const mockUser: User = {
-        id: 'mock-user-id',
-        email: 'dev@orderlyai.com',
-        name: 'Dev User',
-        workspaceDomain: 'dev.orderlyai.com',
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      };
-      setToken(mockToken);
-      setUser(mockUser);
-      localStorage.setItem('token', mockToken);
-      localStorage.setItem('user', JSON.stringify(mockUser));
-    }
+      if (storedToken && storedUser) {
+        setToken(storedToken);
+        setUser(JSON.parse(storedUser));
+        setIsLoading(false);
+        return;
+      }
 
-    setIsLoading(false);
+      // Para desenvolvimento: obter token válido do backend
+      try {
+        const API_URL = import.meta.env.VITE_API_URL || '/api';
+        console.log('🔐 Buscando token de desenvolvimento de:', `${API_URL}/auth/dev-token`);
+        const response = await fetch(`${API_URL}/auth/dev-token`);
+        if (response.ok) {
+          const data = await response.json();
+          console.log('✅ Token obtido com sucesso');
+          setToken(data.access_token);
+          setUser(data.user);
+          localStorage.setItem('token', data.access_token);
+          localStorage.setItem('user', JSON.stringify(data.user));
+        } else {
+          const errorText = await response.text();
+          console.error('❌ Erro ao obter token de desenvolvimento:', response.status, errorText);
+        }
+      } catch (error) {
+        console.error('❌ Erro ao inicializar autenticação:', error);
+      }
+
+      setIsLoading(false);
+    };
+
+    initializeAuth();
   }, []);
 
   const login = (newToken: string, newUser: User) => {

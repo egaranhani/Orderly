@@ -5,10 +5,26 @@ import {
   Draggable,
   DropResult,
 } from '@hello-pangea/dnd';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Layout } from '@/components/Layout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { EisenhowerQuadrant } from '@/types/priority.types';
+import { useAuth } from '@/contexts/AuthContext';
+import { priorityService } from '@/services/priority.service';
+import { taskService } from '@/services/task.service';
+import {
+  EisenhowerQuadrant,
+  PriorityResponseDto,
+  PriorityStatus,
+  PriorityOrigin,
+  CreatePriorityDto,
+  UpdatePriorityDto,
+} from '@/types/priority.types';
+import {
+  CreateTaskDto,
+  TaskClassification,
+  TaskOrigin,
+} from '@/types/task.types';
 import {
   Dialog,
   DialogContent,
@@ -53,18 +69,6 @@ const quadrantLabels = {
   },
 };
 
-interface MockPriority {
-  id: string;
-  title: string;
-  description?: string;
-  tags: string[];
-  taskCount: number;
-  quadrant: EisenhowerQuadrant;
-  origin: 'manual' | 'ai';
-  status?: 'active' | 'completed' | 'archived';
-  createdAt?: string;
-  updatedAt?: string;
-}
 
 export const PrioritiesPage: React.FC = () => {
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -72,13 +76,14 @@ export const PrioritiesPage: React.FC = () => {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [tasksDialogOpen, setTasksDialogOpen] = useState(false);
   const [createTaskDialogOpen, setCreateTaskDialogOpen] = useState(false);
-  const [selectedPriority, setSelectedPriority] = useState<MockPriority | null>(null);
-  const [tasks, setTasks] = useState<any[]>([]);
+  const { token, isLoading: authLoading } = useAuth();
+  const queryClient = useQueryClient();
+  const [selectedPriority, setSelectedPriority] = useState<PriorityResponseDto | null>(null);
   const [contextMenu, setContextMenu] = useState<{
     open: boolean;
     x: number;
     y: number;
-    priority: MockPriority | null;
+    priority: PriorityResponseDto | null;
   }>({
     open: false,
     x: 0,
@@ -94,140 +99,95 @@ export const PrioritiesPage: React.FC = () => {
     tags: [] as string[],
     tagInput: '',
   });
-  const [priorities, setPriorities] = useState<MockPriority[]>([
-    {
-      id: '1',
-      title: 'Fechar proposta da Congregação',
-      description: 'Finalizar proposta comercial para a Congregação com todos os detalhes técnicos e financeiros.',
-      tags: ['trabalho', 'urgente'],
-      taskCount: 3,
-      quadrant: EisenhowerQuadrant.Q1,
-      origin: 'manual',
-      status: 'active',
-      createdAt: '2024-12-01T10:00:00Z',
-      updatedAt: '2024-12-05T14:30:00Z',
+  const [taskFormData, setTaskFormData] = useState({
+    title: '',
+    description: '',
+    classification: TaskClassification.DO,
+  });
+  const { data: priorities = [], isLoading, error } = useQuery({
+    queryKey: ['priorities'],
+    queryFn: () => priorityService.getAll(token),
+    enabled: !!token && !authLoading,
+  });
+
+  const { data: tasks = [], isLoading: tasksLoading } = useQuery({
+    queryKey: ['tasks', selectedPriority?.id],
+    queryFn: () => priorityService.getTasks(token!, selectedPriority!.id),
+    enabled: !!selectedPriority && !!token && tasksDialogOpen,
+  });
+
+  const createMutation = useMutation({
+    mutationFn: (data: CreatePriorityDto) => priorityService.create(token!, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['priorities'] });
+      setDialogOpen(false);
+      setFormData({ title: '', description: '', quadrant: EisenhowerQuadrant.Q1, tags: [], tagInput: '' });
     },
-    {
-      id: '2',
-      title: 'Revisar contrato com cliente',
-      description: 'Revisar termos e condições do contrato antes da assinatura.',
-      tags: ['trabalho', 'legal'],
-      taskCount: 1,
-      quadrant: EisenhowerQuadrant.Q1,
-      origin: 'manual',
-      status: 'active',
-      createdAt: '2024-12-02T09:15:00Z',
-      updatedAt: '2024-12-04T16:20:00Z',
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: ({ id, data }: { id: string; data: UpdatePriorityDto }) =>
+      priorityService.update(token!, id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['priorities'] });
+      setEditDialogOpen(false);
+      if (expandedCardId === selectedPriority?.id) {
+        setExpandedCardId(null);
+      }
+      setSelectedPriority(null);
+      setFormData({ title: '', description: '', quadrant: EisenhowerQuadrant.Q1, tags: [], tagInput: '' });
     },
-    {
-      id: '3',
-      title: 'Preparar apresentação executiva',
-      description: 'Criar slides para apresentação aos executivos sobre os resultados do trimestre.',
-      tags: ['trabalho', 'apresentação'],
-      taskCount: 5,
-      quadrant: EisenhowerQuadrant.Q1,
-      origin: 'manual',
-      status: 'active',
-      createdAt: '2024-12-01T11:00:00Z',
-      updatedAt: '2024-12-05T10:00:00Z',
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => priorityService.delete(token!, id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['priorities'] });
+      setDeleteDialogOpen(false);
+      if (expandedCardId === selectedPriority?.id) {
+        setExpandedCardId(null);
+      }
+      setSelectedPriority(null);
     },
-    {
-      id: '4',
-      title: 'Resolver problema crítico do sistema',
-      description: 'Investigar e corrigir falha crítica que está afetando os usuários.',
-      tags: ['trabalho', 'tecnologia', 'urgente'],
-      taskCount: 2,
-      quadrant: EisenhowerQuadrant.Q1,
-      origin: 'ai',
-      status: 'active',
-      createdAt: '2024-12-05T08:00:00Z',
-      updatedAt: '2024-12-05T12:00:00Z',
+  });
+
+  const createTaskMutation = useMutation({
+    mutationFn: (data: CreateTaskDto) => {
+      if (!selectedPriority) {
+        throw new Error('Prioridade não selecionada');
+      }
+      return taskService.create(token!, selectedPriority.id, data);
     },
-    {
-      id: '5',
-      title: 'Reunião com equipe de desenvolvimento',
-      description: 'Alinhar próximos passos do projeto com a equipe técnica.',
-      tags: ['trabalho', 'reunião'],
-      taskCount: 0,
-      quadrant: EisenhowerQuadrant.Q1,
-      origin: 'manual',
-      status: 'active',
-      createdAt: '2024-12-03T14:00:00Z',
-      updatedAt: '2024-12-03T14:00:00Z',
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['tasks', selectedPriority?.id] });
+      queryClient.invalidateQueries({ queryKey: ['priorities'] });
+      setCreateTaskDialogOpen(false);
+      setTaskFormData({ title: '', description: '', classification: TaskClassification.DO });
     },
-    {
-      id: '6',
-      title: 'Finalizar relatório mensal',
-      description: 'Compilar dados e gerar relatório mensal de atividades e resultados.',
-      tags: ['trabalho', 'relatório'],
-      taskCount: 4,
-      quadrant: EisenhowerQuadrant.Q1,
-      origin: 'manual',
-      status: 'active',
-      createdAt: '2024-12-01T09:00:00Z',
-      updatedAt: '2024-12-05T15:00:00Z',
+    onError: (error: any) => {
+      console.error('Erro ao criar tarefa:', error);
+      alert('Erro ao criar tarefa. Verifique o console para mais detalhes.');
     },
-    {
-      id: '7',
-      title: 'Aprovar orçamento do projeto',
-      description: 'Revisar e aprovar orçamento detalhado do novo projeto.',
-      tags: ['trabalho', 'financeiro'],
-      taskCount: 1,
-      quadrant: EisenhowerQuadrant.Q1,
-      origin: 'manual',
-      status: 'active',
-      createdAt: '2024-12-02T10:30:00Z',
-      updatedAt: '2024-12-04T11:00:00Z',
+  });
+
+  const moveMutation = useMutation({
+    mutationFn: ({ id, quadrant }: { id: string; quadrant: EisenhowerQuadrant }) =>
+      priorityService.move(token!, id, { quadrant }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['priorities'] });
     },
-    {
-      id: '8',
-      title: 'Responder emails pendentes',
-      description: 'Responder emails importantes que estão aguardando resposta.',
-      tags: ['trabalho', 'comunicação'],
-      taskCount: 0,
-      quadrant: EisenhowerQuadrant.Q1,
-      origin: 'manual',
-      status: 'active',
-      createdAt: '2024-12-05T08:30:00Z',
-      updatedAt: '2024-12-05T08:30:00Z',
+  });
+
+  const archiveMutation = useMutation({
+    mutationFn: (id: string) => priorityService.archive(token!, id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['priorities'] });
+      if (expandedCardId === selectedPriority?.id) {
+        setExpandedCardId(null);
+      }
+      setSelectedPriority(null);
     },
-    {
-      id: '9',
-      title: 'Atualizar documentação técnica',
-      description: 'Atualizar documentação do sistema com as últimas mudanças implementadas.',
-      tags: ['trabalho', 'documentação'],
-      taskCount: 3,
-      quadrant: EisenhowerQuadrant.Q1,
-      origin: 'manual',
-      status: 'active',
-      createdAt: '2024-12-01T13:00:00Z',
-      updatedAt: '2024-12-04T17:00:00Z',
-    },
-    {
-      id: '10',
-      title: 'Coordenar entrega de produto',
-      description: 'Coordenar todas as etapas da entrega do produto ao cliente final.',
-      tags: ['trabalho', 'projeto'],
-      taskCount: 6,
-      quadrant: EisenhowerQuadrant.Q1,
-      origin: 'manual',
-      status: 'active',
-      createdAt: '2024-12-01T08:00:00Z',
-      updatedAt: '2024-12-05T13:00:00Z',
-    },
-    {
-      id: '11',
-      title: 'Planejar férias de julho',
-      description: 'Definir destino, reservar hospedagem e organizar roteiro das férias em família.',
-      tags: ['pessoal', 'família'],
-      taskCount: 0,
-      quadrant: EisenhowerQuadrant.Q2,
-      origin: 'manual',
-      status: 'active',
-      createdAt: '2024-12-01T15:00:00Z',
-      updatedAt: '2024-12-02T10:00:00Z',
-    },
-  ]);
+  });
 
   const handleDragEnd = (result: DropResult) => {
     if (!result.destination) return;
@@ -236,20 +196,23 @@ export const PrioritiesPage: React.FC = () => {
     const destQuadrant = result.destination.droppableId as EisenhowerQuadrant;
     const priorityId = result.draggableId;
 
-    if (sourceQuadrant === destQuadrant) return;
+    if (sourceQuadrant === destQuadrant) {
+      return;
+    }
 
-    setPriorities((prev) =>
-      prev.map((p) =>
-        p.id === priorityId ? { ...p, quadrant: destQuadrant } : p
-      )
-    );
+    moveMutation.mutate({ id: priorityId, quadrant: destQuadrant });
   };
 
   const getPrioritiesByQuadrant = (quadrant: EisenhowerQuadrant) => {
-    const filtered = quadrantFilter
-      ? priorities.filter((p) => quadrantFilter.includes(p.quadrant) && p.quadrant === quadrant)
-      : priorities.filter((p) => p.quadrant === quadrant);
-    return filtered.filter((p) => p.status !== 'archived');
+    let filtered = priorities.filter((p) => p.quadrant === quadrant);
+    
+    filtered = filtered.filter((p) => p.status !== PriorityStatus.ARCHIVED);
+    
+    if (quadrantFilter && !quadrantFilter.includes(quadrant)) {
+      return [];
+    }
+    
+    return filtered;
   };
 
   const toggleQuadrantFilter = (quadrant: EisenhowerQuadrant) => {
@@ -274,66 +237,34 @@ export const PrioritiesPage: React.FC = () => {
 
   const handleCreatePriority = () => {
     if (!formData.title.trim()) return;
-
-    const newPriority: MockPriority = {
-      id: Date.now().toString(),
+    createMutation.mutate({
       title: formData.title,
       description: formData.description || undefined,
-      tags: formData.tags,
-      taskCount: 0,
       quadrant: formData.quadrant,
-      origin: 'manual',
-      status: 'active',
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-
-    setPriorities((prev) => [...prev, newPriority]);
-    setFormData({ title: '', description: '', quadrant: EisenhowerQuadrant.Q1, tags: [], tagInput: '' });
-    setDialogOpen(false);
+      tags: formData.tags,
+      origin: PriorityOrigin.MANUAL,
+    });
   };
 
   const handleEditPriority = () => {
     if (!selectedPriority || !formData.title.trim()) return;
-
-    setPriorities((prev) =>
-      prev.map((p) =>
-        p.id === selectedPriority.id
-          ? {
-              ...p,
-              title: formData.title,
-              description: formData.description || undefined,
-              tags: formData.tags,
-              quadrant: formData.quadrant,
-              updatedAt: new Date().toISOString(),
-            }
-          : p
-      )
-    );
-
-    if (expandedCardId === selectedPriority.id) {
-      setExpandedCardId(null);
-    }
-
-    setFormData({ title: '', description: '', quadrant: EisenhowerQuadrant.Q1, tags: [], tagInput: '' });
-    setSelectedPriority(null);
-    setEditDialogOpen(false);
+    updateMutation.mutate({
+      id: selectedPriority.id,
+      data: {
+        title: formData.title,
+        description: formData.description || undefined,
+        quadrant: formData.quadrant,
+        tags: formData.tags,
+      },
+    });
   };
 
   const handleDeletePriority = () => {
     if (!selectedPriority) return;
-
-    setPriorities((prev) => prev.filter((p) => p.id !== selectedPriority.id));
-
-    if (expandedCardId === selectedPriority.id) {
-      setExpandedCardId(null);
-    }
-
-    setSelectedPriority(null);
-    setDeleteDialogOpen(false);
+    deleteMutation.mutate(selectedPriority.id);
   };
 
-  const openEditDialog = (priority: MockPriority) => {
+  const openEditDialog = (priority: PriorityResponseDto) => {
     setSelectedPriority(priority);
     setFormData({
       title: priority.title,
@@ -345,7 +276,7 @@ export const PrioritiesPage: React.FC = () => {
     setEditDialogOpen(true);
   };
 
-  const openDeleteDialog = (priority: MockPriority) => {
+  const openDeleteDialog = (priority: PriorityResponseDto) => {
     setSelectedPriority(priority);
     setDeleteDialogOpen(true);
   };
@@ -368,52 +299,35 @@ export const PrioritiesPage: React.FC = () => {
   };
 
   const handleToggleStatus = (priorityId: string) => {
-    setPriorities((prev) =>
-      prev.map((p) =>
-        p.id === priorityId
-          ? {
-              ...p,
-              status: p.status === 'active' ? 'completed' : 'active',
-              updatedAt: new Date().toISOString(),
-            }
-          : p
-      )
-    );
+    const priority = priorities.find((p) => p.id === priorityId);
+    if (!priority) return;
+
+    const newStatus =
+      priority.status === PriorityStatus.ACTIVE
+        ? PriorityStatus.COMPLETED
+        : PriorityStatus.ACTIVE;
+
+    updateMutation.mutate({
+      id: priorityId,
+      data: { status: newStatus },
+    });
   };
 
   const handleArchive = (priorityId: string) => {
-    setPriorities((prev) =>
-      prev.map((p) =>
-        p.id === priorityId
-          ? {
-              ...p,
-              status: 'archived',
-              updatedAt: new Date().toISOString(),
-            }
-          : p
-      )
-    );
-    if (expandedCardId === priorityId) {
-      setExpandedCardId(null);
-    }
+    archiveMutation.mutate(priorityId);
   };
 
-  const handleViewTasks = (priority: MockPriority) => {
+  const handleViewTasks = (priority: PriorityResponseDto) => {
     setSelectedPriority(priority);
-    // Mock tasks - em produção, usar priorityService.getTasks
-    setTasks([
-      { id: '1', title: 'Tarefa exemplo 1', completed: false },
-      { id: '2', title: 'Tarefa exemplo 2', completed: true },
-    ]);
     setTasksDialogOpen(true);
   };
 
-  const handleCreateTask = (priority: MockPriority) => {
+  const handleCreateTask = (priority: PriorityResponseDto) => {
     setSelectedPriority(priority);
     setCreateTaskDialogOpen(true);
   };
 
-  const handleContextMenu = (e: React.MouseEvent, priority: MockPriority) => {
+  const handleContextMenu = (e: React.MouseEvent, priority: PriorityResponseDto) => {
     e.preventDefault();
     e.stopPropagation();
     setContextMenu({
@@ -458,23 +372,48 @@ export const PrioritiesPage: React.FC = () => {
     });
   };
 
-  const getStatusLabel = (status?: string) => {
-    const labels: Record<string, string> = {
-      active: 'Ativo',
-      completed: 'Concluído',
-      archived: 'Arquivado',
+  const getStatusLabel = (status?: PriorityStatus) => {
+    const labels: Record<PriorityStatus, string> = {
+      [PriorityStatus.ACTIVE]: 'Ativo',
+      [PriorityStatus.COMPLETED]: 'Concluído',
+      [PriorityStatus.ARCHIVED]: 'Arquivado',
     };
-    return labels[status || 'active'] || 'Ativo';
+    return labels[status || PriorityStatus.ACTIVE] || 'Ativo';
   };
 
-  const getStatusColor = (status?: string) => {
-    const colors: Record<string, string> = {
-      active: 'bg-green-100 text-green-800',
-      completed: 'bg-blue-100 text-blue-800',
-      archived: 'bg-gray-100 text-gray-800',
+  const getStatusColor = (status?: PriorityStatus) => {
+    const colors: Record<PriorityStatus, string> = {
+      [PriorityStatus.ACTIVE]: 'bg-green-100 text-green-800',
+      [PriorityStatus.COMPLETED]: 'bg-blue-100 text-blue-800',
+      [PriorityStatus.ARCHIVED]: 'bg-gray-100 text-gray-800',
     };
-    return colors[status || 'active'] || 'bg-green-100 text-green-800';
+    return colors[status || PriorityStatus.ACTIVE] || 'bg-green-100 text-green-800';
   };
+
+  if (isLoading) {
+    return (
+      <Layout>
+        <div className="flex items-center justify-center h-full">
+          <p className="text-muted-foreground">Carregando prioridades...</p>
+        </div>
+      </Layout>
+    );
+  }
+
+  if (error) {
+    return (
+      <Layout>
+        <div className="flex items-center justify-center h-full">
+          <div className="text-center">
+            <p className="text-destructive mb-4">Erro ao carregar prioridades</p>
+            <Button onClick={() => queryClient.invalidateQueries({ queryKey: ['priorities'] })}>
+              Tentar novamente
+            </Button>
+          </div>
+        </div>
+      </Layout>
+    );
+  }
 
   return (
     <Layout>
@@ -588,8 +527,11 @@ export const PrioritiesPage: React.FC = () => {
                 <Button variant="outline" onClick={() => setDialogOpen(false)}>
                   Cancelar
                 </Button>
-                <Button onClick={handleCreatePriority} disabled={!formData.title.trim()}>
-                  Criar
+                <Button
+                  onClick={handleCreatePriority}
+                  disabled={!formData.title.trim() || createMutation.isPending}
+                >
+                  {createMutation.isPending ? 'Salvando...' : 'Criar'}
                 </Button>
               </DialogFooter>
             </DialogContent>
@@ -686,8 +628,11 @@ export const PrioritiesPage: React.FC = () => {
                 <Button variant="outline" onClick={() => setEditDialogOpen(false)}>
                   Cancelar
                 </Button>
-                <Button onClick={handleEditPriority} disabled={!formData.title.trim()}>
-                  Salvar
+                <Button
+                  onClick={handleEditPriority}
+                  disabled={!formData.title.trim() || updateMutation.isPending}
+                >
+                  {updateMutation.isPending ? 'Salvando...' : 'Salvar'}
                 </Button>
               </DialogFooter>
             </DialogContent>
@@ -705,8 +650,12 @@ export const PrioritiesPage: React.FC = () => {
                 <Button variant="outline" onClick={() => setDeleteDialogOpen(false)}>
                   Cancelar
                 </Button>
-                <Button variant="destructive" onClick={handleDeletePriority}>
-                  Excluir
+                <Button
+                  variant="destructive"
+                  onClick={handleDeletePriority}
+                  disabled={deleteMutation.isPending}
+                >
+                  {deleteMutation.isPending ? 'Excluindo...' : 'Excluir'}
                 </Button>
               </DialogFooter>
             </DialogContent>
@@ -721,13 +670,17 @@ export const PrioritiesPage: React.FC = () => {
                 </DialogDescription>
               </DialogHeader>
               <div className="py-4">
-                {tasks.length === 0 ? (
+                {tasksLoading ? (
+                  <p className="text-sm text-muted-foreground text-center py-8">
+                    Carregando tarefas...
+                  </p>
+                ) : tasks.length === 0 ? (
                   <p className="text-sm text-muted-foreground text-center py-8">
                     Nenhuma tarefa encontrada
                   </p>
                 ) : (
                   <div className="space-y-2">
-                    {tasks.map((task) => (
+                    {tasks.map((task: any) => (
                       <Card key={task.id}>
                         <CardContent className="p-3 flex items-center justify-between">
                           <div className="flex items-center gap-2">
@@ -776,7 +729,11 @@ export const PrioritiesPage: React.FC = () => {
               <div className="space-y-4 py-4">
                 <div>
                   <label className="text-sm font-medium mb-2 block">Título da Tarefa *</label>
-                  <Input placeholder="Digite o título da tarefa..." />
+                  <Input
+                    placeholder="Digite o título da tarefa..."
+                    value={taskFormData.title}
+                    onChange={(e) => setTaskFormData({ ...taskFormData, title: e.target.value })}
+                  />
                 </div>
                 <div>
                   <label className="text-sm font-medium mb-2 block">
@@ -785,21 +742,51 @@ export const PrioritiesPage: React.FC = () => {
                   <textarea
                     className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                     placeholder="Descrição da tarefa..."
+                    value={taskFormData.description}
+                    onChange={(e) => setTaskFormData({ ...taskFormData, description: e.target.value })}
                   />
+                </div>
+                <div>
+                  <label className="text-sm font-medium mb-2 block">Classificação *</label>
+                  <Select
+                    value={taskFormData.classification}
+                    onValueChange={(value) => setTaskFormData({ ...taskFormData, classification: value as TaskClassification })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value={TaskClassification.DO}>Fazer</SelectItem>
+                      <SelectItem value={TaskClassification.SCHEDULE}>Agendar</SelectItem>
+                      <SelectItem value={TaskClassification.DELEGATE}>Delegar</SelectItem>
+                      <SelectItem value={TaskClassification.ELIMINATE}>Eliminar</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
               <DialogFooter>
-                <Button variant="outline" onClick={() => setCreateTaskDialogOpen(false)}>
+                <Button variant="outline" onClick={() => {
+                  setCreateTaskDialogOpen(false);
+                  setTaskFormData({ title: '', description: '', classification: TaskClassification.DO });
+                }}>
                   Cancelar
                 </Button>
                 <Button
                   onClick={() => {
-                    // Em produção, criar tarefa via service
-                    setCreateTaskDialogOpen(false);
-                    // Navegar para página de tarefas ou atualizar lista
+                    if (!taskFormData.title.trim()) {
+                      alert('Por favor, preencha o título da tarefa');
+                      return;
+                    }
+                    createTaskMutation.mutate({
+                      title: taskFormData.title,
+                      description: taskFormData.description || undefined,
+                      classification: taskFormData.classification,
+                      origin: TaskOrigin.MANUAL,
+                    });
                   }}
+                  disabled={createTaskMutation.isPending}
                 >
-                  Criar Tarefa
+                  {createTaskMutation.isPending ? 'Criando...' : 'Criar Tarefa'}
                 </Button>
               </DialogFooter>
             </DialogContent>
@@ -838,7 +825,7 @@ export const PrioritiesPage: React.FC = () => {
                 >
                   Editar
                 </button>
-                {contextMenu.priority.status !== 'archived' && (
+                {contextMenu.priority.status !== PriorityStatus.ARCHIVED && (
                   <button
                     className="w-full text-left px-2 py-1.5 text-sm hover:bg-accent rounded-sm"
                     onClick={() => handleContextMenuAction('archive')}
@@ -993,7 +980,7 @@ export const PrioritiesPage: React.FC = () => {
                                                     >
                                                       {getStatusLabel(priority.status)}
                                                     </span>
-                                                    {priority.status !== 'archived' && (
+                                                    {priority.status !== PriorityStatus.ARCHIVED && (
                                                       <Button
                                                         size="sm"
                                                         variant="outline"
@@ -1003,7 +990,7 @@ export const PrioritiesPage: React.FC = () => {
                                                           handleToggleStatus(priority.id);
                                                         }}
                                                       >
-                                                        {priority.status === 'active'
+                                                        {priority.status === PriorityStatus.ACTIVE
                                                           ? 'Marcar como concluído'
                                                           : 'Reativar'}
                                                       </Button>
@@ -1020,8 +1007,8 @@ export const PrioritiesPage: React.FC = () => {
                                                         }}
                                                         className="hover:underline text-primary"
                                                       >
-                                                        {priority.taskCount} tarefa
-                                                        {priority.taskCount !== 1 ? 's' : ''}
+                                                        {priority.taskCount ?? 0} tarefa
+                                                        {(priority.taskCount ?? 0) !== 1 ? 's' : ''}
                                                       </button>
                                                       <span className="capitalize">
                                                         {priority.origin}
@@ -1055,10 +1042,10 @@ export const PrioritiesPage: React.FC = () => {
                                               
                                               {!isExpanded && (
                                                 <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
-                                                  <span>
-                                                    {priority.taskCount} tarefa
-                                                    {priority.taskCount !== 1 ? 's' : ''}
-                                                  </span>
+                                                    <span>
+                                                      {priority.taskCount ?? 0} tarefa
+                                                      {(priority.taskCount ?? 0) !== 1 ? 's' : ''}
+                                                    </span>
                                                   <span className="capitalize">
                                                     {priority.origin}
                                                   </span>
@@ -1123,7 +1110,7 @@ export const PrioritiesPage: React.FC = () => {
                                                 >
                                                   Editar
                                                 </DropdownMenuItem>
-                                                {priority.status !== 'archived' && (
+                                                {priority.status !== PriorityStatus.ARCHIVED && (
                                                   <DropdownMenuItem
                                                     onClick={(e) => {
                                                       e.stopPropagation();

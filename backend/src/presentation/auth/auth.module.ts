@@ -7,8 +7,7 @@ import { AuthService } from './auth.service';
 import { GoogleStrategy } from './strategies/google.strategy';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { FirestoreModule } from '@infrastructure/persistence/firestore/firestore.module';
-import { CreateUserUseCase } from '@application/use-cases/user/create-user.use-case';
-import { GetUserUseCase } from '@application/use-cases/user/get-user.use-case';
+import { UserModule } from '@application/use-cases/user/user.module';
 
 @Module({
   imports: [
@@ -24,14 +23,13 @@ import { GetUserUseCase } from '@application/use-cases/user/get-user.use-case';
       inject: [ConfigService],
     }),
     FirestoreModule,
+    UserModule,
   ],
   controllers: [AuthController],
   providers: [
     AuthService,
     GoogleStrategy,
     JwtStrategy,
-    CreateUserUseCase,
-    GetUserUseCase,
   ],
   exports: [AuthService],
 })

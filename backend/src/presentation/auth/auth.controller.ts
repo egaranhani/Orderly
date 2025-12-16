@@ -26,5 +26,13 @@ export class AuthController {
   async getProfile(@Req() req: Request) {
     return req.user;
   }
+
+  @Get('dev-token')
+  async getDevToken() {
+    if (process.env.ENVIRONMENT === 'production') {
+      throw new Error('Dev token endpoint is not available in production');
+    }
+    return this.authService.generateDevToken();
+  }
 }
 
