@@ -84,7 +84,7 @@ export const PrioritiesPage: React.FC = () => {
   const [deleteTaskDialogOpen, setDeleteTaskDialogOpen] = useState(false);
   const [moveTaskDialogOpen, setMoveTaskDialogOpen] = useState(false);
   const [selectedTask, setSelectedTask] = useState<any>(null);
-  const { token, isLoading: authLoading } = useAuth();
+  const { token, isLoading: authLoading, error: authError } = useAuth();
   const queryClient = useQueryClient();
   const [selectedPriority, setSelectedPriority] = useState<PriorityResponseDto | null>(null);
   const [contextMenu, setContextMenu] = useState<{
@@ -540,6 +540,32 @@ export const PrioritiesPage: React.FC = () => {
     };
     return colors[status || PriorityStatus.ACTIVE] || 'bg-green-100 text-green-800';
   };
+
+  if (authLoading) {
+    return (
+      <Layout>
+        <div className="flex items-center justify-center h-full">
+          <p className="text-muted-foreground">Carregando...</p>
+        </div>
+      </Layout>
+    );
+  }
+
+  if (authError) {
+    return (
+      <Layout>
+        <div className="flex items-center justify-center h-full">
+          <div className="text-center max-w-md">
+            <p className="text-destructive mb-2 font-medium">Erro de autenticação</p>
+            <p className="text-sm text-muted-foreground mb-4">{authError}</p>
+            <Button onClick={() => window.location.reload()}>
+              Recarregar página
+            </Button>
+          </div>
+        </div>
+      </Layout>
+    );
+  }
 
   if (isLoading) {
     return (

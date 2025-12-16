@@ -2,13 +2,19 @@ import { Injectable } from '@nestjs/common';
 import { Firestore } from '@google-cloud/firestore';
 import { User } from '@domain/entities/user.entity';
 import { IUserRepository } from '@domain/repositories/user.repository.interface';
+import { CollectionPrefixService } from './collection-prefix.service';
 
 @Injectable()
 export class FirestoreUserRepository implements IUserRepository {
   private readonly collection: FirebaseFirestore.CollectionReference;
 
-  constructor(private readonly firestore: Firestore) {
-    this.collection = this.firestore.collection('users');
+  constructor(
+    private readonly firestore: Firestore,
+    private readonly prefixService: CollectionPrefixService,
+  ) {
+    this.collection = this.firestore.collection(
+      this.prefixService.getCollectionName('users'),
+    );
   }
 
   async findById(id: string): Promise<User | null> {

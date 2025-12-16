@@ -5,6 +5,7 @@ import { FirestoreConversationRepository } from './conversation.repository';
 import { FirestorePriorityRepository } from './priority.repository';
 import { FirestoreTaskRepository } from './task.repository';
 import { FirestoreInboxRepository } from './inbox.repository';
+import { CollectionPrefixService } from './collection-prefix.service';
 import { IUserRepository } from '@domain/repositories/user.repository.interface';
 import { IConversationRepository } from '@domain/repositories/conversation.repository.interface';
 import { IPriorityRepository } from '@domain/repositories/priority.repository.interface';
@@ -23,6 +24,7 @@ import { IInboxRepository } from '@domain/repositories/inbox.repository.interfac
         });
       },
     },
+    CollectionPrefixService,
     {
       provide: 'IUserRepository',
       useClass: FirestoreUserRepository,
@@ -45,6 +47,7 @@ import { IInboxRepository } from '@domain/repositories/inbox.repository.interfac
     },
   ],
   exports: [
+    CollectionPrefixService,
     'IUserRepository',
     'IConversationRepository',
     'IPriorityRepository',
