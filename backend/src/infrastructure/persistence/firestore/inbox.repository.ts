@@ -2,13 +2,19 @@ import { Injectable } from '@nestjs/common';
 import { Firestore } from '@google-cloud/firestore';
 import { InboxItem, InboxItemStatus, ActionSuggestion } from '@domain/entities/inbox-item.entity';
 import { IInboxRepository } from '@domain/repositories/inbox.repository.interface';
+import { CollectionPrefixService } from './collection-prefix.service';
 
 @Injectable()
 export class FirestoreInboxRepository implements IInboxRepository {
   private readonly collection: FirebaseFirestore.CollectionReference;
 
-  constructor(private readonly firestore: Firestore) {
-    this.collection = this.firestore.collection('inbox');
+  constructor(
+    private readonly firestore: Firestore,
+    private readonly prefixService: CollectionPrefixService,
+  ) {
+    this.collection = this.firestore.collection(
+      this.prefixService.getCollectionName('inbox'),
+    );
   }
 
   async findById(id: string): Promise<InboxItem | null> {

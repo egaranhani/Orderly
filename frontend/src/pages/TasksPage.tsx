@@ -68,7 +68,7 @@ const classificationLabels = {
 
 export const TasksPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
-  const { token, isLoading: authLoading } = useAuth();
+  const { token, isLoading: authLoading, error: authError } = useAuth();
   const queryClient = useQueryClient();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
@@ -249,7 +249,33 @@ export const TasksPage: React.FC = () => {
     return colors[status] || 'bg-gray-100 text-gray-800';
   };
 
-  if (priorityLoading || tasksLoading || authLoading) {
+  if (authLoading) {
+    return (
+      <Layout>
+        <div className="flex items-center justify-center h-full">
+          <p className="text-muted-foreground">Carregando...</p>
+        </div>
+      </Layout>
+    );
+  }
+
+  if (authError) {
+    return (
+      <Layout>
+        <div className="flex items-center justify-center h-full">
+          <div className="text-center max-w-md">
+            <p className="text-destructive mb-2 font-medium">Erro de autenticação</p>
+            <p className="text-sm text-muted-foreground mb-4">{authError}</p>
+            <Button onClick={() => window.location.reload()}>
+              Recarregar página
+            </Button>
+          </div>
+        </div>
+      </Layout>
+    );
+  }
+
+  if (priorityLoading || tasksLoading) {
     return (
       <Layout>
         <div className="flex items-center justify-center h-full">

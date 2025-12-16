@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { Firestore } from '@google-cloud/firestore';
 import { Conversation, Message } from '@domain/entities/conversation.entity';
 import { IConversationRepository } from '@domain/repositories/conversation.repository.interface';
+import { CollectionPrefixService } from './collection-prefix.service';
 
 @Injectable()
 export class FirestoreConversationRepository
@@ -9,8 +10,13 @@ export class FirestoreConversationRepository
 {
   private readonly collection: FirebaseFirestore.CollectionReference;
 
-  constructor(private readonly firestore: Firestore) {
-    this.collection = this.firestore.collection('conversations');
+  constructor(
+    private readonly firestore: Firestore,
+    private readonly prefixService: CollectionPrefixService,
+  ) {
+    this.collection = this.firestore.collection(
+      this.prefixService.getCollectionName('conversations'),
+    );
   }
 
   async findById(id: string): Promise<Conversation | null> {

@@ -2,13 +2,19 @@ import { Injectable } from '@nestjs/common';
 import { Firestore } from '@google-cloud/firestore';
 import { Tarefa, TaskClassification, TaskStatus, TaskOrigin } from '@domain/entities/task.entity';
 import { ITaskRepository } from '@domain/repositories/task.repository.interface';
+import { CollectionPrefixService } from './collection-prefix.service';
 
 @Injectable()
 export class FirestoreTaskRepository implements ITaskRepository {
   private readonly collection: FirebaseFirestore.CollectionReference;
 
-  constructor(private readonly firestore: Firestore) {
-    this.collection = this.firestore.collection('tasks');
+  constructor(
+    private readonly firestore: Firestore,
+    private readonly prefixService: CollectionPrefixService,
+  ) {
+    this.collection = this.firestore.collection(
+      this.prefixService.getCollectionName('tasks'),
+    );
   }
 
   async findById(id: string): Promise<Tarefa | null> {

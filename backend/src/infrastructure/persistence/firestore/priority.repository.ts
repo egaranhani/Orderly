@@ -2,13 +2,19 @@ import { Injectable } from '@nestjs/common';
 import { Firestore } from '@google-cloud/firestore';
 import { Prioridade, PriorityStatus, EisenhowerQuadrant, PriorityOrigin } from '@domain/entities/priority.entity';
 import { IPriorityRepository } from '@domain/repositories/priority.repository.interface';
+import { CollectionPrefixService } from './collection-prefix.service';
 
 @Injectable()
 export class FirestorePriorityRepository implements IPriorityRepository {
   private readonly collection: FirebaseFirestore.CollectionReference;
 
-  constructor(private readonly firestore: Firestore) {
-    this.collection = this.firestore.collection('priorities');
+  constructor(
+    private readonly firestore: Firestore,
+    private readonly prefixService: CollectionPrefixService,
+  ) {
+    this.collection = this.firestore.collection(
+      this.prefixService.getCollectionName('priorities'),
+    );
   }
 
   async findById(id: string): Promise<Prioridade | null> {
