@@ -100,6 +100,7 @@ export const PrioritiesPage: React.FC = () => {
   });
   const [expandedCardId, setExpandedCardId] = useState<string | null>(null);
   const [quadrantFilter, setQuadrantFilter] = useState<EisenhowerQuadrant[] | null>(null);
+  const [completedPrioritiesDialogOpen, setCompletedPrioritiesDialogOpen] = useState(false);
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -329,7 +330,8 @@ export const PrioritiesPage: React.FC = () => {
   const getPrioritiesByQuadrant = (quadrant: EisenhowerQuadrant) => {
     let filtered = priorities.filter((p) => p.quadrant === quadrant);
     
-    filtered = filtered.filter((p) => p.status !== PriorityStatus.ARCHIVED);
+    // Filtrar apenas prioridades ativas
+    filtered = filtered.filter((p) => p.status === PriorityStatus.ACTIVE);
     
     // Ordenar por displayOrder
     filtered.sort((a, b) => a.displayOrder - b.displayOrder);
@@ -339,6 +341,12 @@ export const PrioritiesPage: React.FC = () => {
     }
     
     return filtered;
+  };
+
+  const getCompletedAndArchivedPriorities = () => {
+    return priorities.filter(
+      (p) => p.status === PriorityStatus.COMPLETED || p.status === PriorityStatus.ARCHIVED
+    );
   };
 
   const toggleQuadrantFilter = (quadrant: EisenhowerQuadrant) => {
@@ -1386,25 +1394,96 @@ export const PrioritiesPage: React.FC = () => {
           )}
         </div>
 
-        <div className="mb-4 flex items-center gap-2 flex-wrap">
-          <span className="text-sm font-medium">Filtrar por quadrante:</span>
-          <Button
-            size="sm"
-            variant={quadrantFilter === null ? 'default' : 'outline'}
-            onClick={() => setQuadrantFilter(null)}
-          >
-            Todos
-          </Button>
-          {Object.values(EisenhowerQuadrant).map((quadrant) => (
+        <Dialog open={completedPrioritiesDialogOpen} onOpenChange={setCompletedPrioritiesDialogOpen}>
+          <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Prioridades Finalizadas e Arquivadas</DialogTitle>
+              <DialogDescription>
+                Visualize todas as prioridades que foram finalizadas ou arquivadas
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4">
+              {getCompletedAndArchivedPriorities().length === 0 ? (
+                <p className="text-center text-muted-foreground py-8">
+                  Nenhuma prioridade finalizada ou arquivada
+                </p>
+              ) : (
+                <div className="space-y-4">
+                  {getCompletedAndArchivedPriorities().map((priority) => (
+                    <Card key={priority.id}>
+                      <CardContent className="p-4">
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-2">
+                              <h4 className="font-medium">{priority.title}</h4>
+                              <span className={`text-xs px-2 py-1 rounded ${getStatusColor(priority.status)}`}>
+                                {getStatusLabel(priority.status)}
+                              </span>
+                              <span className="text-xs text-muted-foreground">
+                                {quadrantLabels[priority.quadrant].title}
+                              </span>
+                            </div>
+                            {priority.description && (
+                              <p className="text-sm text-muted-foreground mb-2">
+                                {priority.description}
+                              </p>
+                            )}
+                            {priority.tags.length > 0 && (
+                              <div className="flex gap-1 flex-wrap">
+                                {priority.tags.map((tag) => (
+                                  <span
+                                    key={tag}
+                                    className="text-xs bg-secondary text-secondary-foreground px-2 py-1 rounded"
+                                  >
+                                    {tag}
+                                  </span>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              )}
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        <div className="mb-4 flex items-center justify-between flex-wrap gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-sm font-medium">Filtrar por quadrante:</span>
             <Button
-              key={quadrant}
               size="sm"
-              variant={quadrantFilter?.includes(quadrant) ? 'default' : 'outline'}
-              onClick={() => toggleQuadrantFilter(quadrant)}
+              variant={quadrantFilter === null ? 'default' : 'outline'}
+              onClick={() => setQuadrantFilter(null)}
             >
-              {quadrantLabels[quadrant].title}
+              Todos
             </Button>
-          ))}
+            {Object.values(EisenhowerQuadrant).map((quadrant) => (
+              <Button
+                key={quadrant}
+                size="sm"
+                variant={quadrantFilter?.includes(quadrant) ? 'default' : 'outline'}
+                onClick={() => toggleQuadrantFilter(quadrant)}
+              >
+                {quadrantLabels[quadrant].title}
+              </Button>
+            ))}
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setCompletedPrioritiesDialogOpen(true)}
+          >
+            Ver Finalizadas/Arquivadas
+            {getCompletedAndArchivedPriorities().length > 0 && (
+              <span className="ml-2 bg-muted text-muted-foreground px-2 py-0.5 rounded-full text-xs">
+                {getCompletedAndArchivedPriorities().length}
+              </span>
+            )}
+          </Button>
         </div>
 
         <DragDropContext onDragEnd={handleDragEnd}>
