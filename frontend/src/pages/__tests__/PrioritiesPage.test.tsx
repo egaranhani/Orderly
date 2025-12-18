@@ -822,4 +822,407 @@ describe('PrioritiesPage', () => {
       alertSpy.mockRestore();
     });
   });
+
+  describe('Filtro de Prioridades Finalizadas e Arquivadas', () => {
+    it('deve exibir apenas prioridades ativas nos quadrantes', async () => {
+      server.use(
+        http.get('/api/priorities', () => {
+          return HttpResponse.json({
+            priorities: [
+              {
+                id: 'p1',
+                userId: 'test-user-id',
+                title: 'Prioridade Ativa',
+                quadrant: 'Q1',
+                displayOrder: 0,
+                status: 'active',
+                origin: 'manual',
+                tags: [],
+                taskCount: 0,
+                createdAt: '2024-01-01T00:00:00.000Z',
+                updatedAt: '2024-01-01T00:00:00.000Z',
+              },
+              {
+                id: 'p2',
+                userId: 'test-user-id',
+                title: 'Prioridade Finalizada',
+                quadrant: 'Q1',
+                displayOrder: 1,
+                status: 'completed',
+                origin: 'manual',
+                tags: [],
+                taskCount: 0,
+                createdAt: '2024-01-01T00:00:00.000Z',
+                updatedAt: '2024-01-01T00:00:00.000Z',
+              },
+              {
+                id: 'p3',
+                userId: 'test-user-id',
+                title: 'Prioridade Arquivada',
+                quadrant: 'Q1',
+                displayOrder: 2,
+                status: 'archived',
+                origin: 'manual',
+                tags: [],
+                taskCount: 0,
+                createdAt: '2024-01-01T00:00:00.000Z',
+                updatedAt: '2024-01-01T00:00:00.000Z',
+              },
+            ],
+          });
+        })
+      );
+
+      render(<PrioritiesPage />);
+
+      await waitFor(() => {
+        expect(screen.getByText('Prioridade Ativa')).toBeInTheDocument();
+      });
+
+      // Verificar que apenas a prioridade ativa aparece
+      expect(screen.getByText('Prioridade Ativa')).toBeInTheDocument();
+      expect(screen.queryByText('Prioridade Finalizada')).not.toBeInTheDocument();
+      expect(screen.queryByText('Prioridade Arquivada')).not.toBeInTheDocument();
+    });
+
+    it('deve exibir botão para ver prioridades finalizadas/arquivadas', async () => {
+      render(<PrioritiesPage />);
+
+      await waitFor(() => {
+        expect(screen.getByText('Matriz de Prioridades')).toBeInTheDocument();
+      });
+
+      const button = screen.getByRole('button', {
+        name: /ver finalizadas\/arquivadas/i,
+      });
+      expect(button).toBeInTheDocument();
+    });
+
+    it('deve exibir contador no botão quando há prioridades finalizadas/arquivadas', async () => {
+      server.use(
+        http.get('/api/priorities', () => {
+          return HttpResponse.json({
+            priorities: [
+              {
+                id: 'p1',
+                userId: 'test-user-id',
+                title: 'Prioridade Ativa',
+                quadrant: 'Q1',
+                displayOrder: 0,
+                status: 'active',
+                origin: 'manual',
+                tags: [],
+                taskCount: 0,
+                createdAt: '2024-01-01T00:00:00.000Z',
+                updatedAt: '2024-01-01T00:00:00.000Z',
+              },
+              {
+                id: 'p2',
+                userId: 'test-user-id',
+                title: 'Prioridade Finalizada',
+                quadrant: 'Q1',
+                displayOrder: 1,
+                status: 'completed',
+                origin: 'manual',
+                tags: [],
+                taskCount: 0,
+                createdAt: '2024-01-01T00:00:00.000Z',
+                updatedAt: '2024-01-01T00:00:00.000Z',
+              },
+              {
+                id: 'p3',
+                userId: 'test-user-id',
+                title: 'Prioridade Arquivada',
+                quadrant: 'Q2',
+                displayOrder: 0,
+                status: 'archived',
+                origin: 'manual',
+                tags: [],
+                taskCount: 0,
+                createdAt: '2024-01-01T00:00:00.000Z',
+                updatedAt: '2024-01-01T00:00:00.000Z',
+              },
+            ],
+          });
+        })
+      );
+
+      render(<PrioritiesPage />);
+
+      await waitFor(() => {
+        expect(screen.getByText('Matriz de Prioridades')).toBeInTheDocument();
+      });
+
+      // Verificar que o contador mostra 2 (1 finalizada + 1 arquivada)
+      const button = screen.getByRole('button', {
+        name: /ver finalizadas\/arquivadas/i,
+      });
+      expect(button).toBeInTheDocument();
+      expect(button).toHaveTextContent('2');
+    });
+
+    it('deve abrir dialog ao clicar no botão de prioridades finalizadas/arquivadas', async () => {
+      const user = userEvent.setup();
+      server.use(
+        http.get('/api/priorities', () => {
+          return HttpResponse.json({
+            priorities: [
+              {
+                id: 'p1',
+                userId: 'test-user-id',
+                title: 'Prioridade Finalizada',
+                quadrant: 'Q1',
+                displayOrder: 0,
+                status: 'completed',
+                origin: 'manual',
+                tags: ['tag1'],
+                description: 'Descrição da prioridade finalizada',
+                taskCount: 0,
+                createdAt: '2024-01-01T00:00:00.000Z',
+                updatedAt: '2024-01-01T00:00:00.000Z',
+              },
+            ],
+          });
+        })
+      );
+
+      render(<PrioritiesPage />);
+
+      await waitFor(() => {
+        expect(screen.getByText('Matriz de Prioridades')).toBeInTheDocument();
+      });
+
+      const button = screen.getByRole('button', {
+        name: /ver finalizadas\/arquivadas/i,
+      });
+      await user.click(button);
+
+      await waitFor(() => {
+        expect(
+          screen.getByRole('dialog', {
+            name: /prioridades finalizadas e arquivadas/i,
+          })
+        ).toBeInTheDocument();
+      });
+    });
+
+    it('deve exibir prioridades finalizadas no dialog', async () => {
+      const user = userEvent.setup();
+      server.use(
+        http.get('/api/priorities', () => {
+          return HttpResponse.json({
+            priorities: [
+              {
+                id: 'p1',
+                userId: 'test-user-id',
+                title: 'Prioridade Finalizada',
+                quadrant: 'Q1',
+                displayOrder: 0,
+                status: 'completed',
+                origin: 'manual',
+                tags: ['tag1', 'tag2'],
+                description: 'Descrição da prioridade finalizada',
+                taskCount: 0,
+                createdAt: '2024-01-01T00:00:00.000Z',
+                updatedAt: '2024-01-01T00:00:00.000Z',
+              },
+            ],
+          });
+        })
+      );
+
+      render(<PrioritiesPage />);
+
+      await waitFor(() => {
+        expect(screen.getByText('Matriz de Prioridades')).toBeInTheDocument();
+      });
+
+      const button = screen.getByRole('button', {
+        name: /ver finalizadas\/arquivadas/i,
+      });
+      await user.click(button);
+
+      const dialog = await screen.findByRole('dialog', {
+        name: /prioridades finalizadas e arquivadas/i,
+      });
+
+      // Verificar conteúdo do dialog usando within para evitar conflitos com elementos da página
+      const dialogContent = within(dialog);
+      expect(dialogContent.getByText('Prioridade Finalizada')).toBeInTheDocument();
+      expect(dialogContent.getByText('Descrição da prioridade finalizada')).toBeInTheDocument();
+      expect(dialogContent.getByText('tag1')).toBeInTheDocument();
+      expect(dialogContent.getByText('tag2')).toBeInTheDocument();
+      expect(dialogContent.getByText('Concluído')).toBeInTheDocument();
+      expect(dialogContent.getByText('Urgente / Importante')).toBeInTheDocument();
+    });
+
+    it('deve exibir prioridades arquivadas no dialog', async () => {
+      const user = userEvent.setup();
+      server.use(
+        http.get('/api/priorities', () => {
+          return HttpResponse.json({
+            priorities: [
+              {
+                id: 'p1',
+                userId: 'test-user-id',
+                title: 'Prioridade Arquivada',
+                quadrant: 'Q2',
+                displayOrder: 0,
+                status: 'archived',
+                origin: 'manual',
+                tags: [],
+                taskCount: 0,
+                createdAt: '2024-01-01T00:00:00.000Z',
+                updatedAt: '2024-01-01T00:00:00.000Z',
+              },
+            ],
+          });
+        })
+      );
+
+      render(<PrioritiesPage />);
+
+      await waitFor(() => {
+        expect(screen.getByText('Matriz de Prioridades')).toBeInTheDocument();
+      });
+
+      const button = screen.getByRole('button', {
+        name: /ver finalizadas\/arquivadas/i,
+      });
+      await user.click(button);
+
+      const dialog = await screen.findByRole('dialog', {
+        name: /prioridades finalizadas e arquivadas/i,
+      });
+
+      // Verificar conteúdo do dialog usando within para evitar conflitos com elementos da página
+      const dialogContent = within(dialog);
+      expect(dialogContent.getByText('Prioridade Arquivada')).toBeInTheDocument();
+      expect(dialogContent.getByText('Arquivado')).toBeInTheDocument();
+      expect(dialogContent.getByText('Não Urgente / Importante')).toBeInTheDocument();
+    });
+
+    it('deve exibir mensagem quando não há prioridades finalizadas/arquivadas', async () => {
+      const user = userEvent.setup();
+      server.use(
+        http.get('/api/priorities', () => {
+          return HttpResponse.json({
+            priorities: [
+              {
+                id: 'p1',
+                userId: 'test-user-id',
+                title: 'Prioridade Ativa',
+                quadrant: 'Q1',
+                displayOrder: 0,
+                status: 'active',
+                origin: 'manual',
+                tags: [],
+                taskCount: 0,
+                createdAt: '2024-01-01T00:00:00.000Z',
+                updatedAt: '2024-01-01T00:00:00.000Z',
+              },
+            ],
+          });
+        })
+      );
+
+      render(<PrioritiesPage />);
+
+      await waitFor(() => {
+        expect(screen.getByText('Matriz de Prioridades')).toBeInTheDocument();
+      });
+
+      const button = screen.getByRole('button', {
+        name: /ver finalizadas\/arquivadas/i,
+      });
+      await user.click(button);
+
+      await waitFor(() => {
+        expect(
+          screen.getByRole('dialog', {
+            name: /prioridades finalizadas e arquivadas/i,
+          })
+        ).toBeInTheDocument();
+      });
+
+      expect(
+        screen.getByText('Nenhuma prioridade finalizada ou arquivada')
+      ).toBeInTheDocument();
+    });
+
+    it('deve exibir múltiplas prioridades finalizadas e arquivadas no dialog', async () => {
+      const user = userEvent.setup();
+      server.use(
+        http.get('/api/priorities', () => {
+          return HttpResponse.json({
+            priorities: [
+              {
+                id: 'p1',
+                userId: 'test-user-id',
+                title: 'Prioridade Finalizada 1',
+                quadrant: 'Q1',
+                displayOrder: 0,
+                status: 'completed',
+                origin: 'manual',
+                tags: ['tag1'],
+                taskCount: 0,
+                createdAt: '2024-01-01T00:00:00.000Z',
+                updatedAt: '2024-01-01T00:00:00.000Z',
+              },
+              {
+                id: 'p2',
+                userId: 'test-user-id',
+                title: 'Prioridade Finalizada 2',
+                quadrant: 'Q2',
+                displayOrder: 0,
+                status: 'completed',
+                origin: 'manual',
+                tags: [],
+                taskCount: 0,
+                createdAt: '2024-01-02T00:00:00.000Z',
+                updatedAt: '2024-01-02T00:00:00.000Z',
+              },
+              {
+                id: 'p3',
+                userId: 'test-user-id',
+                title: 'Prioridade Arquivada',
+                quadrant: 'Q3',
+                displayOrder: 0,
+                status: 'archived',
+                origin: 'manual',
+                tags: ['tag2'],
+                taskCount: 0,
+                createdAt: '2024-01-03T00:00:00.000Z',
+                updatedAt: '2024-01-03T00:00:00.000Z',
+              },
+            ],
+          });
+        })
+      );
+
+      render(<PrioritiesPage />);
+
+      await waitFor(() => {
+        expect(screen.getByText('Matriz de Prioridades')).toBeInTheDocument();
+      });
+
+      const button = screen.getByRole('button', {
+        name: /ver finalizadas\/arquivadas/i,
+      });
+      await user.click(button);
+
+      await waitFor(() => {
+        expect(
+          screen.getByRole('dialog', {
+            name: /prioridades finalizadas e arquivadas/i,
+          })
+        ).toBeInTheDocument();
+      });
+
+      // Verificar que todas as prioridades aparecem
+      expect(screen.getByText('Prioridade Finalizada 1')).toBeInTheDocument();
+      expect(screen.getByText('Prioridade Finalizada 2')).toBeInTheDocument();
+      expect(screen.getByText('Prioridade Arquivada')).toBeInTheDocument();
+    });
+  });
 });
