@@ -9,6 +9,7 @@ import {
   Query,
   UseGuards,
   Request,
+  HttpCode,
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { CreatePriorityUseCase } from '@application/use-cases/priority/create-priority.use-case';
@@ -111,6 +112,7 @@ export class PriorityController {
   }
 
   @Post(':quadrant/reorder')
+  @HttpCode(200)
   async reorderPriorities(
     @Request() req: any,
     @Param('quadrant') quadrant: string,

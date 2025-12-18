@@ -217,6 +217,47 @@ export const handlers = [
     return HttpResponse.json(priorities[index]);
   }),
 
+  http.post(`${baseUrl}/priorities/:quadrant/reorder`, async ({ params, request }) => {
+    const { quadrant } = params;
+    const body = await request.json();
+    const { priorityIds } = body as { priorityIds: string[] };
+
+    if (!priorityIds || priorityIds.length === 0) {
+      return HttpResponse.json(
+        { error: 'priorityIds array cannot be empty' },
+        { status: 400 }
+      );
+    }
+
+    // Verificar se todas as prioridades existem e estão no mesmo quadrante
+    for (const id of priorityIds) {
+      const priority = priorities.find((p) => p.id === id);
+      if (!priority) {
+        return HttpResponse.json(
+          { error: 'Priority not found' },
+          { status: 404 }
+        );
+      }
+      if (priority.quadrant !== quadrant) {
+        return HttpResponse.json(
+          { error: 'All priorities must be in the same quadrant' },
+          { status: 400 }
+        );
+      }
+    }
+
+    // Atualizar displayOrder das prioridades
+    priorityIds.forEach((id, index) => {
+      const priority = priorities.find((p) => p.id === id);
+      if (priority && priority.quadrant === quadrant) {
+        priority.displayOrder = index;
+        priority.updatedAt = new Date().toISOString();
+      }
+    });
+
+    return HttpResponse.json({ success: true });
+  }),
+
   http.delete(`${baseUrl}/priorities/:id`, ({ params }) => {
     const { id } = params;
     priorities = priorities.filter((p) => p.id !== id);
