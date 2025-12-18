@@ -170,6 +170,95 @@ describe('PriorityController (e2e)', () => {
     });
   });
 
+  describe('POST /priorities/:quadrant/reorder', () => {
+    let priority1Id: string;
+    let priority2Id: string;
+    let priority3Id: string;
+
+    beforeAll(async () => {
+      // Criar 3 prioridades no mesmo quadrante Q1
+      const p1 = await request(app.getHttpServer())
+        .post('/priorities')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({ title: 'Priority 1', quadrant: 'Q1' });
+      priority1Id = p1.body.id;
+
+      const p2 = await request(app.getHttpServer())
+        .post('/priorities')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({ title: 'Priority 2', quadrant: 'Q1' });
+      priority2Id = p2.body.id;
+
+      const p3 = await request(app.getHttpServer())
+        .post('/priorities')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({ title: 'Priority 3', quadrant: 'Q1' });
+      priority3Id = p3.body.id;
+    });
+
+    it('should reorder priorities within the same quadrant', async () => {
+      // Reordenar: priority3, priority1, priority2
+      const response = await request(app.getHttpServer())
+        .post('/priorities/Q1/reorder')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({
+          priorityIds: [priority3Id, priority1Id, priority2Id],
+        })
+        .expect(200);
+
+      expect(response.body.success).toBe(true);
+
+      // Verificar que a ordem foi atualizada
+      const getResponse = await request(app.getHttpServer())
+        .get('/priorities?quadrant=Q1')
+        .set('Authorization', `Bearer ${authToken}`)
+        .expect(200);
+
+      const priorities = getResponse.body.priorities;
+      const q1Priorities = priorities.filter((p: any) => p.quadrant === 'Q1');
+      
+      // Verificar ordem: priority3 deve ter displayOrder 0, priority1 deve ter 1, priority2 deve ter 2
+      const p3 = q1Priorities.find((p: any) => p.id === priority3Id);
+      const p1 = q1Priorities.find((p: any) => p.id === priority1Id);
+      const p2 = q1Priorities.find((p: any) => p.id === priority2Id);
+
+      expect(p3.displayOrder).toBe(0);
+      expect(p1.displayOrder).toBe(1);
+      expect(p2.displayOrder).toBe(2);
+    });
+
+    it('should return 400 if priorityIds array is empty', async () => {
+      await request(app.getHttpServer())
+        .post('/priorities/Q1/reorder')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({ priorityIds: [] })
+        .expect(400);
+    });
+
+    it('should return 400 if priorities are from different quadrants', async () => {
+      // Criar prioridade em Q2
+      const q2Priority = await request(app.getHttpServer())
+        .post('/priorities')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({ title: 'Q2 Priority', quadrant: 'Q2' });
+
+      await request(app.getHttpServer())
+        .post('/priorities/Q1/reorder')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({
+          priorityIds: [priority1Id, q2Priority.body.id],
+        })
+        .expect(400);
+    });
+
+    it('should return 401 if not authenticated', async () => {
+      await request(app.getHttpServer())
+        .post('/priorities/Q1/reorder')
+        .send({ priorityIds: [priority1Id] })
+        .expect(401);
+    });
+  });
+
   describe('DELETE /priorities/:id', () => {
     let priorityId: string;
 

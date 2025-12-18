@@ -274,6 +274,20 @@ export const PrioritiesPage: React.FC = () => {
     },
   });
 
+  const reorderMutation = useMutation({
+    mutationFn: ({ quadrant, priorityIds }: { quadrant: EisenhowerQuadrant; priorityIds: string[] }) =>
+      priorityService.reorder(token!, quadrant, { priorityIds }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['priorities'] });
+    },
+    onError: (error: any) => {
+      console.error('Erro ao reordenar prioridades:', error);
+      alert('Erro ao reordenar prioridades. Verifique o console para mais detalhes.');
+      // Invalidar para restaurar ordem original
+      queryClient.invalidateQueries({ queryKey: ['priorities'] });
+    },
+  });
+
   const handleDragEnd = (result: DropResult) => {
     if (!result.destination) return;
 
@@ -281,17 +295,44 @@ export const PrioritiesPage: React.FC = () => {
     const destQuadrant = result.destination.droppableId as EisenhowerQuadrant;
     const priorityId = result.draggableId;
 
-    if (sourceQuadrant === destQuadrant) {
+    // Se moveu entre quadrantes diferentes
+    if (sourceQuadrant !== destQuadrant) {
+      moveMutation.mutate({ id: priorityId, quadrant: destQuadrant });
       return;
     }
 
-    moveMutation.mutate({ id: priorityId, quadrant: destQuadrant });
+    // Se moveu dentro do mesmo quadrante (reordenação)
+    const quadrantPriorities = getPrioritiesByQuadrant(sourceQuadrant);
+    
+    // Criar nova ordem baseada no índice de destino
+    const newOrder: string[] = [];
+    const sourceIndex = result.source.index;
+    const destIndex = result.destination.index;
+    
+    // Remover o item da posição original
+    for (let i = 0; i < quadrantPriorities.length; i++) {
+      if (i !== sourceIndex) {
+        newOrder.push(quadrantPriorities[i].id);
+      }
+    }
+    
+    // Inserir na nova posição
+    newOrder.splice(destIndex, 0, priorityId);
+    
+    // Chamar reorder mutation
+    reorderMutation.mutate({
+      quadrant: sourceQuadrant,
+      priorityIds: newOrder,
+    });
   };
 
   const getPrioritiesByQuadrant = (quadrant: EisenhowerQuadrant) => {
     let filtered = priorities.filter((p) => p.quadrant === quadrant);
     
     filtered = filtered.filter((p) => p.status !== PriorityStatus.ARCHIVED);
+    
+    // Ordenar por displayOrder
+    filtered.sort((a, b) => a.displayOrder - b.displayOrder);
     
     if (quadrantFilter && !quadrantFilter.includes(quadrant)) {
       return [];
