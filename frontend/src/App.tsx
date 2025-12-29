@@ -7,6 +7,7 @@ import { AuthCallbackPage } from './pages/AuthCallbackPage';
 import { DesignSystemPage } from './pages/DesignSystemPage';
 import { PrioritiesPage } from './pages/PrioritiesPage';
 import { TasksPage } from './pages/TasksPage';
+import { AllTasksPage } from './pages/AllTasksPage';
 import { InboxPage } from './pages/InboxPage';
 import { ReportsPage } from './pages/ReportsPage';
 
@@ -31,6 +32,14 @@ function App() {
             element={
               <ProtectedRoute>
                 <TasksPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/tasks"
+            element={
+              <ProtectedRoute>
+                <AllTasksPage />
               </ProtectedRoute>
             }
           />
