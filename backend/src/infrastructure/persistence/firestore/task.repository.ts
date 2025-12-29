@@ -82,7 +82,7 @@ export class FirestoreTaskRepository implements ITaskRepository {
       data.status || TaskStatus.OPEN,
       data.origin || TaskOrigin.MANUAL,
       data.description,
-      data.idealDate ? data.idealDate.toDate() : undefined,
+      this.convertToDate(data.idealDate),
       data.responsible,
       data.meetingReference,
       id,
@@ -96,6 +96,27 @@ export class FirestoreTaskRepository implements ITaskRepository {
     }
 
     return task;
+  }
+
+  private convertToDate(value: any): Date | undefined {
+    if (!value) {
+      return undefined;
+    }
+
+    if (value instanceof Date) {
+      return value;
+    }
+
+    if (typeof value.toDate === 'function') {
+      return value.toDate();
+    }
+
+    if (typeof value === 'string') {
+      const date = new Date(value);
+      return isNaN(date.getTime()) ? undefined : date;
+    }
+
+    return undefined;
   }
 
   private mapToFirestore(task: Tarefa): any {

@@ -62,7 +62,7 @@ export class FirestoreInboxRepository implements IInboxRepository {
         s.suggestedPriority,
         {
           ...s.suggestedTask,
-          idealDate: s.suggestedTask?.idealDate ? s.suggestedTask.idealDate.toDate() : undefined,
+          idealDate: this.convertToDate(s.suggestedTask?.idealDate),
         },
         s.meetingReference,
         s.relevantText,
@@ -75,7 +75,7 @@ export class FirestoreInboxRepository implements IInboxRepository {
       data.status || InboxItemStatus.PENDING,
       suggestions,
       data.meetingTitle,
-      data.processedAt ? data.processedAt.toDate() : undefined,
+      this.convertToDate(data.processedAt),
       id,
     );
 
@@ -87,6 +87,27 @@ export class FirestoreInboxRepository implements IInboxRepository {
     }
 
     return inboxItem;
+  }
+
+  private convertToDate(value: any): Date | undefined {
+    if (!value) {
+      return undefined;
+    }
+
+    if (value instanceof Date) {
+      return value;
+    }
+
+    if (typeof value.toDate === 'function') {
+      return value.toDate();
+    }
+
+    if (typeof value === 'string') {
+      const date = new Date(value);
+      return isNaN(date.getTime()) ? undefined : date;
+    }
+
+    return undefined;
   }
 
   private mapToFirestore(inboxItem: InboxItem): any {
