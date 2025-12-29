@@ -23,6 +23,9 @@ import {
   TaskResponseDto,
 } from '@/types/task.types';
 import {
+  EisenhowerQuadrant,
+} from '@/types/priority.types';
+import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -67,6 +70,7 @@ const classificationLabels = {
 
 interface TaskWithPriority extends TaskResponseDto {
   priorityTitle: string;
+  priorityQuadrant: EisenhowerQuadrant;
 }
 
 export const AllTasksPage: React.FC = () => {
@@ -132,6 +136,7 @@ export const AllTasksPage: React.FC = () => {
           return tasks.map((task: TaskResponseDto) => ({
             ...task,
             priorityTitle: priority.title,
+            priorityQuadrant: priority.quadrant,
           }));
         } catch (error) {
           console.error(`Erro ao buscar tarefas da prioridade ${priority.id}:`, error);
@@ -153,6 +158,11 @@ export const AllTasksPage: React.FC = () => {
 
   const filteredTasks = useMemo(() => {
     return allTasks.filter((task) => {
+      // Excluir tarefas concluídas e canceladas dos quadros
+      if (task.status === TaskStatus.COMPLETED || task.status === TaskStatus.CANCELLED) {
+        return false;
+      }
+      
       if (filters.priorityId !== 'all' && task.priorityId !== filters.priorityId) {
         return false;
       }
@@ -401,6 +411,16 @@ export const AllTasksPage: React.FC = () => {
       [TaskStatus.CANCELLED]: 'bg-gray-100 text-gray-800',
     };
     return colors[status] || 'bg-gray-100 text-gray-800';
+  };
+
+  const getQuadrantColor = (quadrant: EisenhowerQuadrant) => {
+    const colors: Record<EisenhowerQuadrant, string> = {
+      [EisenhowerQuadrant.Q1]: 'bg-red-100 text-red-800 border-red-200',
+      [EisenhowerQuadrant.Q2]: 'bg-blue-100 text-blue-800 border-blue-200',
+      [EisenhowerQuadrant.Q3]: 'bg-yellow-100 text-yellow-800 border-yellow-200',
+      [EisenhowerQuadrant.Q4]: 'bg-gray-100 text-gray-800 border-gray-200',
+    };
+    return colors[quadrant] || 'bg-gray-100 text-gray-800 border-gray-200';
   };
 
   if (authLoading) {
@@ -731,8 +751,6 @@ export const AllTasksPage: React.FC = () => {
                 <SelectItem value="open-in-progress">Abertas e Em Progresso</SelectItem>
                 <SelectItem value={TaskStatus.OPEN}>Abertas</SelectItem>
                 <SelectItem value={TaskStatus.IN_PROGRESS}>Em Progresso</SelectItem>
-                <SelectItem value={TaskStatus.COMPLETED}>Concluídas</SelectItem>
-                <SelectItem value={TaskStatus.CANCELLED}>Canceladas</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -787,6 +805,9 @@ export const AllTasksPage: React.FC = () => {
                                       <CardContent className="p-4">
                                         <div className="flex items-start justify-between">
                                           <div className="flex-1">
+                                            <span className={`text-[10px] px-2 py-0.5 rounded border font-medium inline-block mb-1 ${getQuadrantColor(task.priorityQuadrant)}`}>
+                                              {task.priorityTitle}
+                                            </span>
                                             <h3 className="font-medium mb-1">{task.title}</h3>
                                             {task.description && (
                                               <p className="text-xs text-muted-foreground mb-2">
@@ -794,10 +815,6 @@ export const AllTasksPage: React.FC = () => {
                                               </p>
                                             )}
                                             <div className="space-y-1">
-                                              <p className="text-xs text-muted-foreground">
-                                                <span className="font-medium">Prioridade:</span>{' '}
-                                                {task.priorityTitle}
-                                              </p>
                                               {task.idealDate && (
                                                 <p className="text-xs text-muted-foreground">
                                                   <span className="font-medium">Data:</span>{' '}

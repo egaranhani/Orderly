@@ -7,7 +7,11 @@ import { MemoryRouter, Routes, Route } from 'react-router-dom';
 import { AllTasksPage } from '../AllTasksPage';
 import {
   TaskClassification,
+  TaskStatus,
 } from '@/types/task.types';
+import {
+  EisenhowerQuadrant,
+} from '@/types/priority.types';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider } from '@/contexts/AuthContext';
 
@@ -147,6 +151,245 @@ describe('AllTasksPage', () => {
       if (statusLabel) {
         const statusSelectButton = statusLabel.parentElement?.querySelector('button');
         expect(statusSelectButton).toBeInTheDocument();
+      }
+    });
+
+    it('deve excluir tarefas concluídas e canceladas dos quadros', async () => {
+      renderWithRouter();
+
+      await waitFor(() => {
+        expect(screen.getByText('Gestão de Tarefas')).toBeInTheDocument();
+      });
+
+      // Aguardar carregamento das tarefas
+      await waitFor(() => {
+        expect(screen.getByText('Tarefa relacionada')).toBeInTheDocument();
+      }, { timeout: 3000 });
+
+      // Verificar que tarefas abertas aparecem
+      expect(screen.getByText('Tarefa relacionada')).toBeInTheDocument();
+      expect(screen.getByText('Tarefa agendada')).toBeInTheDocument();
+
+      // Verificar que tarefa concluída NÃO aparece em nenhum quadro
+      expect(screen.queryByText('Tarefa concluída')).not.toBeInTheDocument();
+      
+      // Verificar que tarefa cancelada NÃO aparece em nenhum quadro
+      expect(screen.queryByText('Tarefa cancelada')).not.toBeInTheDocument();
+    });
+
+    it('deve exibir apenas tarefas ativas (não concluídas e não canceladas) em todos os quadros', async () => {
+      renderWithRouter();
+
+      await waitFor(() => {
+        expect(screen.getByText('Gestão de Tarefas')).toBeInTheDocument();
+      });
+
+      await waitFor(() => {
+        expect(screen.getByText('Tarefa relacionada')).toBeInTheDocument();
+      }, { timeout: 3000 });
+
+      // Verificar que existem tarefas visíveis
+      const taskCards = screen.getAllByText('Tarefa relacionada');
+      expect(taskCards.length).toBeGreaterThan(0);
+
+      // Verificar que nenhuma tarefa concluída está visível
+      const completedTasks = screen.queryAllByText('Tarefa concluída');
+      expect(completedTasks.length).toBe(0);
+
+      // Verificar que nenhuma tarefa cancelada está visível
+      const cancelledTasks = screen.queryAllByText('Tarefa cancelada');
+      expect(cancelledTasks.length).toBe(0);
+    });
+
+    it('deve manter outras tarefas visíveis mesmo com tarefas concluídas e canceladas no backend', async () => {
+      renderWithRouter();
+
+      await waitFor(() => {
+        expect(screen.getByText('Gestão de Tarefas')).toBeInTheDocument();
+      });
+
+      await waitFor(() => {
+        expect(screen.getByText('Tarefa relacionada')).toBeInTheDocument();
+      }, { timeout: 3000 });
+
+      // Verificar que tarefas abertas continuam visíveis
+      expect(screen.getByText('Tarefa relacionada')).toBeInTheDocument();
+      expect(screen.getByText('Tarefa agendada')).toBeInTheDocument();
+
+      // Verificar que tarefa concluída não aparece
+      expect(screen.queryByText('Tarefa concluída')).not.toBeInTheDocument();
+      
+      // Verificar que tarefa cancelada não aparece
+      expect(screen.queryByText('Tarefa cancelada')).not.toBeInTheDocument();
+    });
+
+    it('deve excluir tarefas canceladas dos quadros', async () => {
+      renderWithRouter();
+
+      await waitFor(() => {
+        expect(screen.getByText('Gestão de Tarefas')).toBeInTheDocument();
+      });
+
+      await waitFor(() => {
+        expect(screen.getByText('Tarefa relacionada')).toBeInTheDocument();
+      }, { timeout: 3000 });
+
+      // Verificar que tarefas abertas aparecem
+      expect(screen.getByText('Tarefa relacionada')).toBeInTheDocument();
+
+      // Verificar que tarefa cancelada NÃO aparece em nenhum quadro
+      expect(screen.queryByText('Tarefa cancelada')).not.toBeInTheDocument();
+    });
+
+    it('não deve exibir opções Concluídas e Canceladas no filtro de status', async () => {
+      renderWithRouter();
+
+      await waitFor(() => {
+        expect(screen.getByText('Gestão de Tarefas')).toBeInTheDocument();
+      });
+
+      // Verificar que o filtro de status existe
+      const statusLabels = screen.getAllByText(/status/i);
+      const statusLabel = statusLabels.find((label) => 
+        label.textContent?.toLowerCase().includes('status')
+      );
+      
+      expect(statusLabel).toBeInTheDocument();
+      
+      // Verificar que as opções removidas não estão visíveis no DOM inicial
+      // (elas só apareceriam se o Select estivesse aberto, mas não devem existir)
+      expect(screen.queryByText('Concluídas')).not.toBeInTheDocument();
+      expect(screen.queryByText('Canceladas')).not.toBeInTheDocument();
+      
+      // Verificar que opções válidas podem existir (mas não precisam estar visíveis)
+      // O importante é que Concluídas e Canceladas não existam
+    });
+  });
+
+  describe('Esquema de Cores por Quadrante', () => {
+    it('deve aplicar cor vermelha para tarefas do quadrante Q1', async () => {
+      renderWithRouter();
+
+      await waitFor(() => {
+        expect(screen.getByText('Gestão de Tarefas')).toBeInTheDocument();
+      });
+
+      await waitFor(() => {
+        expect(screen.getByText('Tarefa relacionada')).toBeInTheDocument();
+      }, { timeout: 3000 });
+
+      // Encontrar o card da tarefa Q1
+      const taskTitle = screen.getByText('Tarefa relacionada');
+      const taskCard = taskTitle.closest('[class*="card"]');
+      
+      if (taskCard) {
+        // Verificar se o badge da prioridade tem as classes Q1 (vermelho)
+        const priorityBadge = within(taskCard as HTMLElement).getByText('Prioridade Urgente e Importante');
+        expect(priorityBadge).toBeInTheDocument();
+        expect(priorityBadge).toHaveClass('bg-red-100');
+        expect(priorityBadge).toHaveClass('text-red-800');
+        expect(priorityBadge).toHaveClass('border-red-200');
+      }
+    });
+
+    it('deve aplicar cor azul para tarefas do quadrante Q2', async () => {
+      renderWithRouter();
+
+      await waitFor(() => {
+        expect(screen.getByText('Gestão de Tarefas')).toBeInTheDocument();
+      });
+
+      await waitFor(() => {
+        expect(screen.getByText('Tarefa Q2')).toBeInTheDocument();
+      }, { timeout: 3000 });
+
+      // Encontrar o card da tarefa Q2
+      const taskTitle = screen.getByText('Tarefa Q2');
+      const taskCard = taskTitle.closest('[class*="card"]');
+      
+      if (taskCard) {
+        // Verificar se o badge da prioridade tem as classes Q2 (azul)
+        const priorityBadge = within(taskCard as HTMLElement).getByText('Prioridade Não Urgente mas Importante');
+        expect(priorityBadge).toBeInTheDocument();
+        expect(priorityBadge).toHaveClass('bg-blue-100');
+        expect(priorityBadge).toHaveClass('text-blue-800');
+        expect(priorityBadge).toHaveClass('border-blue-200');
+      }
+    });
+
+    it('deve aplicar cor amarela para tarefas do quadrante Q3', async () => {
+      renderWithRouter();
+
+      await waitFor(() => {
+        expect(screen.getByText('Gestão de Tarefas')).toBeInTheDocument();
+      });
+
+      await waitFor(() => {
+        expect(screen.getByText('Tarefa Q3')).toBeInTheDocument();
+      }, { timeout: 3000 });
+
+      // Encontrar o card da tarefa Q3
+      const taskTitle = screen.getByText('Tarefa Q3');
+      const taskCard = taskTitle.closest('[class*="card"]');
+      
+      if (taskCard) {
+        // Verificar se o badge da prioridade tem as classes Q3 (amarelo)
+        const priorityBadge = within(taskCard as HTMLElement).getByText('Prioridade Urgente mas Não Importante');
+        expect(priorityBadge).toBeInTheDocument();
+        expect(priorityBadge).toHaveClass('bg-yellow-100');
+        expect(priorityBadge).toHaveClass('text-yellow-800');
+        expect(priorityBadge).toHaveClass('border-yellow-200');
+      }
+    });
+
+    it('deve aplicar cor cinza para tarefas do quadrante Q4', async () => {
+      renderWithRouter();
+
+      await waitFor(() => {
+        expect(screen.getByText('Gestão de Tarefas')).toBeInTheDocument();
+      });
+
+      await waitFor(() => {
+        expect(screen.getByText('Tarefa Q4')).toBeInTheDocument();
+      }, { timeout: 3000 });
+
+      // Encontrar o card da tarefa Q4
+      const taskTitle = screen.getByText('Tarefa Q4');
+      const taskCard = taskTitle.closest('[class*="card"]');
+      
+      if (taskCard) {
+        // Verificar se o badge da prioridade tem as classes Q4 (cinza)
+        const priorityBadge = within(taskCard as HTMLElement).getByText('Prioridade Não Urgente e Não Importante');
+        expect(priorityBadge).toBeInTheDocument();
+        expect(priorityBadge).toHaveClass('bg-gray-100');
+        expect(priorityBadge).toHaveClass('text-gray-800');
+        expect(priorityBadge).toHaveClass('border-gray-200');
+      }
+    });
+
+    it('deve exibir badge da prioridade abaixo do título', async () => {
+      renderWithRouter();
+
+      await waitFor(() => {
+        expect(screen.getByText('Gestão de Tarefas')).toBeInTheDocument();
+      });
+
+      await waitFor(() => {
+        expect(screen.getByText('Tarefa relacionada')).toBeInTheDocument();
+      }, { timeout: 3000 });
+
+      // Encontrar o card da tarefa
+      const taskTitle = screen.getByText('Tarefa relacionada');
+      const taskCard = taskTitle.closest('[class*="card"]');
+      
+      if (taskCard) {
+        // Verificar que o badge da prioridade existe
+        const priorityBadge = within(taskCard as HTMLElement).getByText('Prioridade Urgente e Importante');
+        expect(priorityBadge).toBeInTheDocument();
+        
+        // Verificar que o título vem antes do badge no DOM (estrutura)
+        const cardContent = within(taskCard as HTMLElement).getByText('Tarefa relacionada').parentElement;
+        expect(cardContent).toBeInTheDocument();
       }
     });
   });

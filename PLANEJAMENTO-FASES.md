@@ -100,7 +100,15 @@ O projeto está sendo implementado em fases incrementais, seguindo Clean Archite
   - ✅ Dialog para visualizar prioridades finalizadas e arquivadas
   - ✅ Gestão de tarefas vinculadas a prioridades
   - ✅ Integração completa com API backend
-- ⏳ Páginas de gestão de tarefas
+- ✅ Páginas de gestão de tarefas
+  - ✅ Página "All Tasks" com agregação de tarefas de todas as prioridades
+  - ✅ Filtros (prioridade, classificação, status, busca por texto)
+  - ✅ CRUD completo de tarefas
+  - ✅ Drag & drop entre classificações
+  - ✅ Reordenação de tarefas dentro da mesma classificação
+  - ✅ Filtro automático de tarefas concluídas e canceladas
+  - ✅ Badge de prioridade com cores por quadrante
+  - ✅ Integração completa com API backend
 - ⏳ Interface de Inbox
 - ⏳ Interface de relatórios
 - ✅ Integração com API backend
