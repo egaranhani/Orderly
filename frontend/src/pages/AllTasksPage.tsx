@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   DragDropContext,
   Droppable,
@@ -83,6 +83,19 @@ export const AllTasksPage: React.FC = () => {
     task: TaskWithPriority;
     targetClassification: TaskClassification;
   } | null>(null);
+  const [orderUpdateTrigger, setOrderUpdateTrigger] = useState(0);
+
+  // Limpar localStorage de tarefas ao montar o componente (apenas uma vez)
+  useEffect(() => {
+    // Limpar todas as chaves de ordem de tarefas do localStorage
+    Object.values(TaskClassification).forEach((classification) => {
+      const key = `task-order-${classification}`;
+      localStorage.removeItem(key);
+    });
+    
+    // Limpar cache do React Query relacionado a tarefas
+    queryClient.removeQueries({ queryKey: ['all-tasks'] });
+  }, []); // Executar apenas uma vez ao montar
 
   const [filters, setFilters] = useState({
     priorityId: 'all',
@@ -126,7 +139,14 @@ export const AllTasksPage: React.FC = () => {
         }
       });
       const tasksArrays = await Promise.all(tasksPromises);
-      return tasksArrays.flat() as TaskWithPriority[];
+      const allTasksFlat = tasksArrays.flat() as TaskWithPriority[];
+      
+      // Remover duplicatas baseado no ID da tarefa
+      const uniqueTasks = Array.from(
+        new Map(allTasksFlat.map((task) => [task.id, task])).values()
+      );
+      
+      return uniqueTasks;
     },
     enabled: !!token && !authLoading && priorities.length > 0,
   });
@@ -154,32 +174,37 @@ export const AllTasksPage: React.FC = () => {
     });
   }, [allTasks, filters]);
 
-  const getTasksByClassification = (classification: TaskClassification) => {
-    const tasks = filteredTasks.filter((t) => t.classification === classification);
-    const order = getTaskOrder(classification);
-    
-    if (order.length === 0) {
-      return tasks;
-    }
-
-    const orderedTasks: TaskWithPriority[] = [];
-    const unorderedTasks: TaskWithPriority[] = [];
-
-    order.forEach((taskId) => {
-      const task = tasks.find((t) => t.id === taskId);
-      if (task) {
-        orderedTasks.push(task);
+  const getTasksByClassification = useMemo(() => {
+    return (classification: TaskClassification) => {
+      const tasks = filteredTasks.filter((t) => t.classification === classification);
+      const order = getTaskOrder(classification);
+      
+      // Forçar re-render quando orderUpdateTrigger mudar
+      void orderUpdateTrigger;
+      
+      if (order.length === 0) {
+        return tasks;
       }
-    });
 
-    tasks.forEach((task) => {
-      if (!order.includes(task.id)) {
-        unorderedTasks.push(task);
-      }
-    });
+      const orderedTasks: TaskWithPriority[] = [];
+      const unorderedTasks: TaskWithPriority[] = [];
 
-    return [...orderedTasks, ...unorderedTasks];
-  };
+      order.forEach((taskId) => {
+        const task = tasks.find((t) => t.id === taskId);
+        if (task) {
+          orderedTasks.push(task);
+        }
+      });
+
+      tasks.forEach((task) => {
+        if (!order.includes(task.id)) {
+          unorderedTasks.push(task);
+        }
+      });
+
+      return [...orderedTasks, ...unorderedTasks];
+    };
+  }, [filteredTasks, orderUpdateTrigger]);
 
   const createTaskMutation = useMutation({
     mutationFn: (data: CreateTaskDto) => {
@@ -292,6 +317,8 @@ export const AllTasksPage: React.FC = () => {
   const saveTaskOrder = (classification: TaskClassification, taskIds: string[]) => {
     const key = `task-order-${classification}`;
     localStorage.setItem(key, JSON.stringify(taskIds));
+    // Forçar re-renderização imediata
+    setOrderUpdateTrigger((prev) => prev + 1);
   };
 
   const handleDragEnd = (result: DropResult) => {
@@ -318,7 +345,7 @@ export const AllTasksPage: React.FC = () => {
       newOrder.splice(destIndex, 0, taskId);
 
       saveTaskOrder(sourceClassification, newOrder);
-      queryClient.invalidateQueries({ queryKey: ['all-tasks'] });
+      // Não precisa invalidar a query, apenas atualizar o trigger para re-render
       return;
     }
 
