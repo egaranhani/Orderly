@@ -91,17 +91,27 @@ O projeto está sendo implementado em fases incrementais, seguindo Clean Archite
 **Objetivo:** Implementar interface React para interação com o sistema.
 
 **Entregas:**
-- ⏳ Páginas de gestão de prioridades
+- ✅ Páginas de gestão de prioridades
+  - ✅ Matriz de Eisenhower com drag & drop
+  - ✅ CRUD completo de prioridades
+  - ✅ Reordenação de prioridades dentro do mesmo quadrante
+  - ✅ Filtro de prioridades por quadrante
+  - ✅ Filtro de prioridades ativas (oculta finalizadas e arquivadas)
+  - ✅ Dialog para visualizar prioridades finalizadas e arquivadas
+  - ✅ Gestão de tarefas vinculadas a prioridades
+  - ✅ Integração completa com API backend
 - ⏳ Páginas de gestão de tarefas
 - ⏳ Interface de Inbox
 - ⏳ Interface de relatórios
-- ⏳ Integração com API backend
-- ⏳ Autenticação OAuth
+- ✅ Integração com API backend
+- ✅ Autenticação OAuth
 
 **Testes:**
+- ✅ Testes de componentes React (PrioritiesPage)
+- ✅ Testes de integração com API (mocks MSW)
+- ✅ Testes de ordenação e reordenação
+- ✅ Testes de filtros e visualização
 - ⏳ Testes automatizados de aceitação (E2E) para fluxos principais
-- ⏳ Testes de componentes React
-- ⏳ Testes de integração com API
 
 ---
 
