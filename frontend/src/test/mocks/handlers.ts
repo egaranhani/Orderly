@@ -11,6 +11,11 @@ import {
   TaskStatus,
   TaskOrigin,
 } from '@/types/task.types';
+import {
+  InboxItemResponseDto,
+  InboxItemStatus,
+  ActionSuggestionDto,
+} from '@/types/inbox.types';
 
 const baseUrl = '/api';
 
@@ -163,6 +168,52 @@ const mockTasks: TaskResponseDto[] = [
 ];
 
 let tasks = [...mockTasks];
+
+const mockInboxItems: InboxItemResponseDto[] = [
+  {
+    id: 'inbox-1',
+    userId: 'test-user-id',
+    meetingTitle: 'Reunião de Planejamento',
+    meetingContent: 'Resumo da reunião de planejamento...',
+    status: InboxItemStatus.PROCESSED,
+    suggestions: [
+      {
+        id: 'suggestion-1',
+        actionSummary: 'Revisar proposta técnica com equipe',
+        suggestedPriority: {
+          title: 'Revisar proposta técnica',
+          quadrant: EisenhowerQuadrant.Q1,
+          tags: ['trabalho', 'urgente'],
+        },
+        suggestedTask: {
+          title: 'Agendar reunião com equipe técnica',
+          classification: TaskClassification.SCHEDULE,
+          idealDate: '2024-01-20',
+        },
+        meetingReference: 'Reunião de Planejamento',
+      },
+      {
+        id: 'suggestion-2',
+        actionSummary: 'Enviar relatório mensal',
+        suggestedPriority: {
+          title: 'Relatório mensal',
+          quadrant: EisenhowerQuadrant.Q2,
+          tags: ['trabalho'],
+        },
+        suggestedTask: {
+          title: 'Preparar e enviar relatório',
+          classification: TaskClassification.DO,
+        },
+        meetingReference: 'Reunião de Planejamento',
+      },
+    ],
+    processedAt: '2024-01-15T10:00:00.000Z',
+    createdAt: '2024-01-15T09:00:00.000Z',
+    updatedAt: '2024-01-15T10:00:00.000Z',
+  },
+];
+
+let inboxItems = [...mockInboxItems];
 
 export const handlers = [
   http.get(`${baseUrl}/auth/dev-token`, () => {
@@ -478,9 +529,150 @@ export const handlers = [
     tasks = tasks.filter((t) => t.id !== id);
     return HttpResponse.json(null, { status: 204 });
   }),
+
+  http.post(`${baseUrl}/inbox`, async ({ request }) => {
+    const body = await request.json() as any;
+    const newInboxItem: InboxItemResponseDto = {
+      id: `inbox-${Date.now()}`,
+      userId: 'test-user-id',
+      meetingTitle: body.meetingTitle,
+      meetingContent: body.meetingContent,
+      status: InboxItemStatus.PROCESSED,
+      suggestions: [
+        {
+          id: `suggestion-${Date.now()}-1`,
+          actionSummary: 'Ação sugerida pela IA',
+          suggestedPriority: {
+            title: 'Prioridade sugerida',
+            quadrant: EisenhowerQuadrant.Q1,
+            tags: ['trabalho'],
+          },
+          suggestedTask: {
+            title: 'Tarefa sugerida',
+            classification: TaskClassification.DO,
+          },
+          meetingReference: body.meetingTitle || 'Reunião sem título',
+        },
+      ],
+      processedAt: new Date().toISOString(),
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+
+    inboxItems.push(newInboxItem);
+    return HttpResponse.json({
+      inboxItemId: newInboxItem.id,
+      suggestions: newInboxItem.suggestions,
+    });
+  }),
+
+  http.get(`${baseUrl}/inbox`, ({ request }) => {
+    const url = new URL(request.url);
+    const status = url.searchParams.get('status');
+
+    let filtered = inboxItems;
+    if (status) {
+      filtered = inboxItems.filter((item) => item.status === status);
+    }
+
+    return HttpResponse.json({ items: filtered });
+  }),
+
+  http.get(`${baseUrl}/inbox/:id`, ({ params }) => {
+    const { id } = params;
+    const item = inboxItems.find((i) => i.id === id);
+
+    if (!item) {
+      return HttpResponse.json(
+        { error: 'Inbox item not found' },
+        { status: 404 }
+      );
+    }
+
+    return HttpResponse.json(item);
+  }),
+
+  http.post(`${baseUrl}/inbox/:id/accept`, async ({ params, request }) => {
+    const { id } = params;
+    const body = await request.json() as any;
+    const item = inboxItems.find((i) => i.id === id);
+
+    if (!item) {
+      return HttpResponse.json(
+        { error: 'Inbox item not found' },
+        { status: 404 }
+      );
+    }
+
+    const newPriority: PriorityResponseDto = {
+      id: `priority-${Date.now()}`,
+      userId: 'test-user-id',
+      title: body.adjustments?.priority?.title || 'Nova Prioridade',
+      quadrant: body.adjustments?.priority?.quadrant || EisenhowerQuadrant.Q1,
+      tags: body.adjustments?.priority?.tags || [],
+      status: PriorityStatus.ACTIVE,
+      origin: PriorityOrigin.AI,
+      displayOrder: 0,
+      taskCount: 1,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+
+    const newTask: TaskResponseDto = {
+      id: `task-${Date.now()}`,
+      userId: 'test-user-id',
+      priorityId: body.linkToExistingPriorityId || newPriority.id,
+      title: body.adjustments?.task?.title || 'Nova Tarefa',
+      classification: body.adjustments?.task?.classification || TaskClassification.DO,
+      idealDate: body.adjustments?.task?.idealDate,
+      responsible: body.adjustments?.task?.responsible,
+      status: TaskStatus.OPEN,
+      origin: TaskOrigin.AI,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+
+    if (!body.linkToExistingPriorityId) {
+      priorities.push(newPriority);
+    }
+    tasks.push(newTask);
+
+    item.status = InboxItemStatus.ACCEPTED;
+    item.updatedAt = new Date().toISOString();
+
+    return HttpResponse.json({
+      priority: body.linkToExistingPriorityId ? priorities.find(p => p.id === body.linkToExistingPriorityId) : newPriority,
+      task: newTask,
+    });
+  }),
+
+  http.post(`${baseUrl}/inbox/:id/discard`, async ({ params, request }) => {
+    const { id } = params;
+    const body = await request.json() as any;
+    const item = inboxItems.find((i) => i.id === id);
+
+    if (!item) {
+      return HttpResponse.json(
+        { error: 'Inbox item not found' },
+        { status: 404 }
+      );
+    }
+
+    item.status = InboxItemStatus.DISCARDED;
+    item.updatedAt = new Date().toISOString();
+
+    return HttpResponse.json({ success: true });
+  }),
+
+  http.delete(`${baseUrl}/inbox/:id`, ({ params }) => {
+    const { id } = params;
+    inboxItems = inboxItems.filter((i) => i.id !== id);
+    return HttpResponse.json({ success: true });
+  }),
 ];
 
 export const resetHandlers = () => {
   priorities = [...mockPriorities];
   tasks = [...mockTasks];
+  inboxItems = [...mockInboxItems];
 };

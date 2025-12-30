@@ -86,7 +86,7 @@ O projeto está sendo implementado em fases incrementais, seguindo Clean Archite
 
 ---
 
-### 🔄 Fase 5: Frontend - Interface de Usuário (EM PLANEJAMENTO)
+### 🔄 Fase 5: Frontend - Interface de Usuário (EM ANDAMENTO)
 
 **Objetivo:** Implementar interface React para interação com o sistema.
 
@@ -109,13 +109,23 @@ O projeto está sendo implementado em fases incrementais, seguindo Clean Archite
   - ✅ Filtro automático de tarefas concluídas e canceladas
   - ✅ Badge de prioridade com cores por quadrante
   - ✅ Integração completa com API backend
-- ⏳ Interface de Inbox
+- ✅ Interface de Inbox
+  - ✅ Formulário de processamento de reunião
+  - ✅ Listagem de sugestões com filtros por status
+  - ✅ Histórico colapsável de reuniões processadas
+  - ✅ Ações individuais: Editar, Aceitar, Descartar, Vincular
+  - ✅ Ações em lote com checkboxes
+  - ✅ Dialog completo de edição
+  - ✅ Dialog de vinculação a prioridade existente
+  - ✅ Layout responsivo
+  - ✅ Integração completa com API backend
 - ⏳ Interface de relatórios
 - ✅ Integração com API backend
 - ✅ Autenticação OAuth
 
 **Testes:**
 - ✅ Testes de componentes React (PrioritiesPage)
+- ✅ Testes de componentes React (InboxPage)
 - ✅ Testes de integração com API (mocks MSW)
 - ✅ Testes de ordenação e reordenação
 - ✅ Testes de filtros e visualização

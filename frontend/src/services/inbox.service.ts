@@ -4,22 +4,28 @@ import {
   AcceptSuggestionDto,
   DiscardSuggestionDto,
   InboxItemResponseDto,
+  ActionSuggestionDto,
+  InboxItemStatus,
 } from '@/types/inbox.types';
 
 export const inboxService = {
   process: async (token: string | null, data: ProcessInboxDto) => {
     const client = createApiClient(token);
-    const response = await client.post<InboxItemResponseDto>(
-      '/inbox/process',
-      data
-    );
+    const response = await client.post<{
+      inboxItemId: string;
+      suggestions: ActionSuggestionDto[];
+    }>('/inbox', data);
     return response.data;
   },
 
-  getAll: async (token: string | null) => {
+  getAll: async (token: string | null, status?: InboxItemStatus) => {
     const client = createApiClient(token);
-    const response = await client.get<InboxItemResponseDto[]>('/inbox');
-    return response.data;
+    const params = status ? { status } : {};
+    const response = await client.get<{ items: InboxItemResponseDto[] }>(
+      '/inbox',
+      { params }
+    );
+    return response.data.items;
   },
 
   getById: async (token: string | null, id: string) => {
